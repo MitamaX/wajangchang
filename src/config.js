@@ -119,6 +119,7 @@ export const PRESS = Object.freeze({
   drop: 0.3,
   speed: 0.25,
   lift: 1.2,
+  travel: 2.5,
   crushSeconds: 1 / 20,
   humSeconds: 0.2,
   cracks: 4,

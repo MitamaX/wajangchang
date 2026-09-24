@@ -1,6 +1,6 @@
 import { PRESS } from '../config.js';
 import { paintHazard, steel } from '../core/canvas.js';
-import { lerp } from '../core/math.js';
+import { clamp, lerp } from '../core/math.js';
 import { Pulse } from './Pulse.js';
 import { Tool } from './Tool.js';
 
@@ -19,6 +19,7 @@ export class Press extends Tool {
     this.onLand = onLand;
     this.onHum = onHum;
     this.x = 0;
+    this.target = 0;
     this.bottom = null;
     this.holding = false;
     this.touching = false;
@@ -44,6 +45,10 @@ export class Press extends Tool {
     return this.bottom === null || this.bottom <= this.rest + RAISED_TOLERANCE;
   }
 
+  get arrived() {
+    return this.x === this.target;
+  }
+
   get busy() {
     return this.holding || !this.raised;
   }
@@ -60,6 +65,7 @@ export class Press extends Tool {
 
   windUp() {
     this.holding = true;
+    this.target = this.aimX;
     this.touching = false;
     this.crushes.reset();
   }
@@ -84,7 +90,8 @@ export class Press extends Tool {
     const { rest } = this;
     this.bottom = Math.max(this.bottom ?? rest, rest);
     if (!this.holding && this.raised) this.x = this.aimX;
-    if (this.holding) this.descend(dt);
+    if (this.holding && this.arrived) this.descend(dt);
+    else if (this.holding && this.raised) this.travel(dt);
     else this.ascend(dt);
     const moving = this.holding ? this.bottom < this.floor : !this.raised;
     if (moving && this.hums.tick(dt)) this.onHum();
@@ -100,6 +107,11 @@ export class Press extends Tool {
     if (!this.crushes.tick(dt)) return;
     this.crushing = this.onCrush({ x: this.x, halfWidth: PRESS.halfWidth, bottom: this.bottom, first: !this.touching });
     this.touching = this.touching || Boolean(this.crushing?.crushed);
+  }
+
+  travel(dt) {
+    const step = PRESS.travel * dt;
+    this.x = clamp(this.target, this.x - step, this.x + step);
   }
 
   ascend(dt) {
