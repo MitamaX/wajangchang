@@ -1,11 +1,17 @@
 import { CHARGE } from '../config.js';
-import { radiate } from '../core/canvas.js';
-import { TAU, easeOut, polar, randomBetween, randomInt, rotate } from '../core/math.js';
+import { createCanvas, radiate } from '../core/canvas.js';
+import { TAU, clamp, easeOut, polar, randomBetween, randomInt, rotate } from '../core/math.js';
 
 const INK = '170,235,255';
 const CORE = '240,252,255';
 const HALO = 'rgba(80,180,255,0.95)';
+const HALO_TINT = '80,180,255';
 const HALO_BLUR = 14;
+const HALO_ALPHA = 0.3;
+const HALO_SPREAD = 8;
+const SPRITE_STEP = Math.log(1.1);
+const SPRITE_MARGIN = HALO_BLUR * 2;
+const SPRITE_LIMIT = 320;
 const LINE = 1.6;
 const FADE_RATE = 5;
 const POP_SECONDS = 0.24;
@@ -89,6 +95,7 @@ function rune() {
 const SHAPES = [
   {
     spin: 0.6,
+    reach: 1,
     draw(context, radius) {
       ring(context, radius);
       ring(context, radius * 0.88);
@@ -97,6 +104,7 @@ const SHAPES = [
   },
   {
     spin: -0.9,
+    reach: 0.88,
     draw(context, radius) {
       polygon(context, radius * 0.88, 3);
       polygon(context, radius * 0.88, 3, Math.PI);
@@ -106,6 +114,7 @@ const SHAPES = [
   },
   {
     spin: 0.35,
+    reach: 1.26,
     draw(context, radius, glyphs) {
       ring(context, radius * 1.12);
       ring(context, radius * 1.26);
@@ -114,12 +123,14 @@ const SHAPES = [
   },
   {
     spin: -0.5,
+    reach: 1.64,
     draw(context, radius) {
       satellites(context, radius * 1.48, radius * 0.16);
     },
   },
   {
     spin: 0.22,
+    reach: 1.92,
     draw(context, radius, glyphs) {
       ring(context, radius * 1.72);
       ring(context, radius * 1.86);
@@ -129,6 +140,7 @@ const SHAPES = [
   },
   {
     spin: -1.6,
+    reach: 2.3,
     draw(context, radius) {
       spokes(context, radius * 1.98, radius * 2.3, RAYS);
       polygon(context, radius * 0.3, 6);
@@ -138,6 +150,51 @@ const SHAPES = [
 ];
 
 const LAYERS = SHAPES.map((shape, i) => ({ ...shape, from: [0, ...CHARGE.tiers][i] }));
+
+function glowStroke(context, pixel, width, color, alpha) {
+  context.strokeStyle = `rgba(${HALO_TINT},${alpha * HALO_ALPHA})`;
+  context.lineWidth = width + HALO_SPREAD * pixel;
+  context.stroke();
+  context.strokeStyle = `rgba(${color},${alpha})`;
+  context.lineWidth = width;
+  context.stroke();
+}
+
+class LayerSprite {
+  constructor(layer, glyphs) {
+    this.layer = layer;
+    this.glyphs = glyphs;
+    this.canvas = createCanvas(1, 1);
+    this.step = NaN;
+    this.radius = 0;
+  }
+
+  fit(radius, lineWidth) {
+    const step = Math.round(Math.log(clamp(radius, 1, SPRITE_LIMIT)) / SPRITE_STEP);
+    if (step === this.step) return;
+    this.step = step;
+    this.radius = Math.exp(step * SPRITE_STEP);
+    const density = this.radius / radius;
+    const half = Math.ceil(this.radius * this.layer.reach + SPRITE_MARGIN);
+    this.canvas.width = half * 2;
+    this.canvas.height = half * 2;
+    const context = this.canvas.getContext('2d');
+    context.translate(half, half);
+    context.globalCompositeOperation = 'lighter';
+    context.lineCap = 'round';
+    context.lineJoin = 'round';
+    context.shadowColor = HALO;
+    context.shadowBlur = HALO_BLUR * density;
+    context.strokeStyle = `rgba(${INK},1)`;
+    context.lineWidth = lineWidth * density;
+    this.layer.draw(context, this.radius, this.glyphs);
+  }
+
+  draw(context, radius) {
+    const half = (this.canvas.width / 2) * (radius / this.radius);
+    context.drawImage(this.canvas, -half, -half, half * 2, half * 2);
+  }
+}
 
 export function glow(context, x, y, radius, strength) {
   radiate(context, x, y, radius, [
@@ -149,7 +206,8 @@ export function glow(context, x, y, radius, strength) {
 
 export class MagicCircle {
   constructor() {
-    this.glyphs = { inner: Array.from({ length: RUNES.inner }, rune), outer: Array.from({ length: RUNES.outer }, rune) };
+    const glyphs = { inner: Array.from({ length: RUNES.inner }, rune), outer: Array.from({ length: RUNES.outer }, rune) };
+    this.sprites = LAYERS.map((layer) => new LayerSprite(layer, glyphs));
     this.focus = null;
     this.fade = 0;
     this.time = 0;
@@ -196,9 +254,6 @@ export class MagicCircle {
     context.save();
     context.globalCompositeOperation = 'lighter';
     context.lineCap = 'round';
-    context.lineJoin = 'round';
-    context.shadowColor = HALO;
-    context.shadowBlur = HALO_BLUR;
     this.bursts.forEach((burst) => this.drawBurst(context, pixel, burst));
     if (this.fade) this.drawSigil(context, pixel);
     context.restore();
@@ -210,34 +265,34 @@ export class MagicCircle {
     const intensity = this.fade * pulse;
     glow(context, x, y, radius * CORE_REACH, intensity * (CORE_GLOW[0] + (CORE_GLOW[1] - CORE_GLOW[0]) * charge));
     context.translate(x, y);
-    LAYERS.forEach((layer) => this.drawLayer(context, pixel, layer, intensity));
+    const { a, b } = context.getTransform();
+    const deviceScale = Math.hypot(a, b);
+    this.sprites.forEach((sprite) => this.drawLayer(context, pixel, sprite, intensity, deviceScale));
     this.drawMotes(context, pixel, intensity);
   }
 
-  drawLayer(context, pixel, layer, intensity) {
+  drawLayer(context, pixel, sprite, intensity, deviceScale) {
     const { radius, charge } = this.focus;
-    const since = (charge - layer.from) * CHARGE.seconds;
+    const since = (charge - sprite.layer.from) * CHARGE.seconds;
     if (since < 0) return;
     const t = Math.min(1, since / POP_SECONDS);
     const scale = overshoot(t);
+    sprite.fit(radius * deviceScale, LINE * pixel * deviceScale);
     context.save();
-    context.rotate(this.time * layer.spin);
+    context.rotate(this.time * sprite.layer.spin);
     context.scale(scale, scale);
-    context.strokeStyle = `rgba(${INK},${intensity * Math.min(1, t * 3) * (1 + POP_FLASH * (1 - t))})`;
-    context.lineWidth = (LINE * pixel) / scale;
-    layer.draw(context, radius, this.glyphs);
+    context.globalAlpha = Math.min(1, intensity * Math.min(1, t * 3) * (1 + POP_FLASH * (1 - t)));
+    sprite.draw(context, radius);
     context.restore();
   }
 
   drawMotes(context, pixel, intensity) {
-    context.strokeStyle = `rgba(${CORE},${intensity})`;
-    context.lineWidth = MOTE_WIDTH * pixel;
     context.beginPath();
     this.motes.forEach(({ angle, distance }) => {
       context.moveTo(...polar(angle, distance));
       context.lineTo(...polar(angle - MOTE_TRAIL, distance * (1 + MOTE_LENGTH)));
     });
-    context.stroke();
+    glowStroke(context, pixel, MOTE_WIDTH * pixel, CORE, intensity);
   }
 
   drawBurst(context, pixel, { x, y, radius, charge, age }) {
@@ -245,12 +300,11 @@ export class MagicCircle {
     const fading = 1 - t;
     const spread = radius * (1 + BURST_GROWTH * easeOut(t)) * (1 + charge);
     glow(context, x, y, spread, fading ** 3 * (0.4 + charge));
-    context.lineWidth = LINE * pixel * (1 + BURST_WIDTH * charge) * fading;
+    const width = LINE * pixel * (1 + BURST_WIDTH * charge) * fading;
     [1, BURST_ECHO].forEach((share) => {
-      context.strokeStyle = `rgba(${CORE},${fading * share})`;
       context.beginPath();
       context.arc(x, y, spread * share, 0, TAU);
-      context.stroke();
+      glowStroke(context, pixel, width, CORE, fading * share);
     });
   }
 }
