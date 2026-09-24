@@ -57,6 +57,11 @@
               <button class="btn btn-accent btn-large" id="startButton" type="button">시작!</button>
             </section>
           </div>
+          <div class="progress loader" id="loader">
+            <span class="label">불러오는 중</span>
+            <div class="meter" id="loaderMeter" role="progressbar" aria-label="불러오기" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><div class="meter-fill" id="loaderFill"></div></div>
+            <span class="percent" id="loaderPercent">0%</span>
+          </div>
           <div class="drop-veil" id="dropVeil" hidden>여기에 놓기</div>
           <div class="toast" id="toast" role="status" aria-live="polite"></div>
         </section>
@@ -71,7 +76,7 @@
             <div class="preview">
               <img id="previewPoster" alt="">
               <video id="previewVideo" muted loop playsinline hidden></video>
-              <div class="render" id="render">
+              <div class="progress render" id="render">
                 <span class="label">영상 생성 중</span>
                 <div class="meter" id="renderMeter" role="progressbar" aria-label="영상 생성" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><div class="meter-fill" id="renderFill"></div></div>
                 <span class="percent" id="renderPercent">0%</span>

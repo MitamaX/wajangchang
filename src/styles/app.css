@@ -612,17 +612,28 @@ button {
   background: #0c0d0e;
 }
 
-.render {
-  position: absolute;
-  left: 10px;
-  right: 10px;
-  bottom: 10px;
+.progress {
   display: flex;
   align-items: center;
   gap: 10px;
   padding: 6px 10px;
   border-radius: 6px;
   background: rgba(10, 10, 11, 0.8);
+}
+
+.render {
+  position: absolute;
+  left: 10px;
+  right: 10px;
+  bottom: 10px;
+}
+
+.loader {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: min(360px, calc(100% - 2 * var(--gutter)));
+  transform: translate(-50%, -50%);
 }
 
 .share-actions {

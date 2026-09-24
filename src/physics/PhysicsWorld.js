@@ -1,5 +1,7 @@
-import SIMD_RAPIER from '@dimforge/rapier2d-simd-compat';
+import PLAIN_ENGINE from '@dimforge/rapier2d-compat?sized';
+import SIMD_ENGINE from '@dimforge/rapier2d-simd-compat?sized';
 import { GRAVITY, MAX_PHYSICS_STEPS, PHYSICS_STEP } from '../config.js';
+import { loadModule } from '../core/modules.js';
 
 const SLAB = 1;
 const WALL_HEIGHT = 30;
@@ -21,13 +23,13 @@ const ROOM_GROUPS = interaction(Membership.ROOM, Membership.FRAGMENT);
 
 const SIMD_PROBE = new Uint8Array([0, 97, 115, 109, 1, 0, 0, 0, 1, 5, 1, 96, 0, 1, 123, 3, 2, 1, 0, 10, 10, 1, 8, 0, 65, 0, 253, 15, 253, 98, 11]);
 
-const loadEngine = async () => (WebAssembly.validate(SIMD_PROBE) ? SIMD_RAPIER : (await import('@dimforge/rapier2d-compat')).default);
+const engineSource = () => (WebAssembly.validate(SIMD_PROBE) ? SIMD_ENGINE : PLAIN_ENGINE);
 
 let RAPIER = null;
 
 export class PhysicsWorld {
-  static async load() {
-    RAPIER = await loadEngine();
+  static async load(onProgress) {
+    RAPIER = (await loadModule(engineSource(), onProgress)).default;
     await RAPIER.init();
   }
 

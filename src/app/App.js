@@ -10,7 +10,6 @@ import { Specimen } from '../destruction/Specimen.js';
 import { composeFrame } from '../media/frames.js';
 import { Recorder, frameSize } from '../media/Recorder.js';
 import { ShareKit } from '../media/ShareKit.js';
-import { PhysicsWorld } from '../physics/PhysicsWorld.js';
 import { Renderer } from '../render/Renderer.js';
 import { buildReport, shareText } from '../report/Report.js';
 import { STAMP_DELAY, makeSeal, paintOutro } from '../report/ReportCard.js';
@@ -61,11 +60,6 @@ function pngFile(canvas, name) {
 }
 
 export class App {
-  static async launch() {
-    await PhysicsWorld.load();
-    return new App();
-  }
-
   constructor() {
     this.canvas = byId('stage');
     this.wrap = byId('stageWrap');
