@@ -121,14 +121,16 @@ class Ball {
 }
 
 export class WreckingBall extends Tool {
-  constructor(room, physics, { onSear, onSizzle, onLand }) {
+  constructor(room, physics, { onSear, onContact, onSizzle, onLand }) {
     super(room);
     this.physics = physics;
     this.onSear = onSear;
+    this.onContact = onContact;
     this.onSizzle = onSizzle;
     this.onLand = onLand;
     this.gantry = new Gantry(room, BALL.radius);
     this.sizzles = new Pulse(BALL.sizzleSeconds);
+    this.holding = false;
     this.armed = false;
     this.reload = BALL.reloadSeconds;
     this.balls = [];
@@ -139,7 +141,7 @@ export class WreckingBall extends Tool {
   }
 
   get busy() {
-    return this.armed || this.balls.length > 0;
+    return this.holding || this.armed || this.balls.length > 0;
   }
 
   get pending() {
@@ -174,16 +176,23 @@ export class WreckingBall extends Tool {
   }
 
   windUp() {
+    this.holding = true;
+  }
+
+  release() {
+    if (!this.holding) return;
+    this.holding = false;
     this.armed = true;
     this.gantry.send(this.aimX);
   }
 
   cancel() {
+    this.holding = false;
     this.armed = false;
   }
 
   stow() {
-    this.armed = false;
+    this.cancel();
     this.present = false;
   }
 
@@ -197,9 +206,10 @@ export class WreckingBall extends Tool {
   }
 
   steer(dt) {
-    if (!this.armed) this.gantry.follow(this.aimX);
+    if (this.holding) this.gantry.send(this.aimX);
+    if (!this.holding && !this.armed) this.gantry.follow(this.aimX);
     else if (!this.gantry.arrived) this.gantry.travel(dt);
-    else if (this.loaded) this.drop();
+    else if (this.armed && this.loaded) this.drop();
   }
 
   drop() {
@@ -223,6 +233,7 @@ export class WreckingBall extends Tool {
 
   sear(ball) {
     ball.searing = this.onSear({ x: ball.x, y: ball.y, radius: BALL.radius, first: !ball.touched });
+    if (ball.searing && !ball.touched) this.onContact();
     ball.touched = ball.touched || ball.searing;
   }
 

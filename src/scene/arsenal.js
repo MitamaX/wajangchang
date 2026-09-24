@@ -54,7 +54,8 @@ export const ARSENAL = Object.freeze([
     label: '철구',
     arm: (session) => new WreckingBall(session.room, session.physics, {
       onSear: (heat) => session.sear(heat),
-      onSizzle: () => session.sound.sear(session.material.key),
+      onContact: () => session.sound.sear(),
+      onSizzle: () => session.sound.sizzle(),
       onLand: (x) => session.land(x, BALL.landShock),
     }),
   },

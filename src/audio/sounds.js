@@ -9,6 +9,7 @@ const SHATTER_BASE = 0.4;
 const SHATTER_STEP = 0.1;
 
 const CHIME = Object.freeze({ base: 65, step: 1.12, rise: 1.06, seconds: 1.1, gain: 0.22, cutoff: 600, brighten: 0.25, q: 5, attack: 0.08 });
+const SIZZLE = Object.freeze({ seconds: 0.34, band: [4200, 5600], q: 0.9, gain: 0.16, swell: 0.08, crackles: 3, spread: 0.14, crackle: [0.004, 0.01], pitch: [2500, 5200], snap: 0.12 });
 
 const CUES = Object.freeze({
   thud: [
@@ -67,7 +68,10 @@ const CUES = Object.freeze({
     { voice: 'bell', duration: 0.6, frequency: 220, gain: 0.12 },
     { voice: 'hiss', duration: 0.2, type: 'lowpass', frequency: 1200, gain: 0.5 },
   ],
-  sizzle: [{ voice: 'hiss', duration: 0.18, type: 'highpass', frequency: 4000, gain: 0.18, attack: 0.02 }],
+  sear: [
+    { voice: 'hiss', duration: 0.7, type: 'bandpass', frequency: 6200, to: 3200, q: 1.1, gain: 0.55, attack: 0.004 },
+    { voice: 'hiss', duration: 0.22, type: 'highpass', frequency: 7500, gain: 0.3, attack: 0.002 },
+  ],
   explode: [
     { voice: 'tone', duration: 1.1, frequency: 75, to: 24, gain: 1, attack: 0.003 },
     { voice: 'hiss', duration: 1.3, type: 'lowpass', frequency: 3200, to: 90, gain: 0.9 },
@@ -157,7 +161,6 @@ const voice = (part, level) => (synth, t, material, amount) => VOICES[material][
 const voiceLevel = (amount) => clamp(amount, ...VOICE_LEVEL);
 const BITE_RING = 0.6;
 const CRUNCH_LEVEL = 0.8;
-const SEAR_LEVEL = 0.4;
 
 function bite(synth, t, material) {
   synth.cue(t, CUES.rip);
@@ -169,9 +172,12 @@ function crunch(synth, t, material) {
   VOICES[material].crack(synth, t, CRUNCH_LEVEL);
 }
 
-function sear(synth, t, material) {
-  synth.cue(t, CUES.sizzle);
-  VOICES[material].crack(synth, t, SEAR_LEVEL);
+function sizzle(synth, t) {
+  const { seconds, band, q, gain, swell, crackles, spread, crackle, pitch, snap } = SIZZLE;
+  synth.hiss(t, seconds, { frequency: synth.between(...band), q, gain, attack: swell });
+  for (let i = 0; i < crackles; i++) {
+    synth.hiss(t + synth.between(0, spread), synth.between(...crackle), { type: 'highpass', frequency: synth.between(...pitch), gain: snap, attack: 0.001 });
+  }
 }
 
 function chime(synth, t, tier, final) {
@@ -193,7 +199,8 @@ export const SOUNDS = Object.freeze({
   whir: cue('whir'),
   slash: cue('slash'),
   crunch,
-  sear,
+  sear: cue('sear'),
+  sizzle,
   hum: cue('hum'),
   clank: cue('clank'),
   sever: cue('sever'),
