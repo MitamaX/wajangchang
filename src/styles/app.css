@@ -33,6 +33,7 @@
   --chip-width: 92px;
   --icon: 18px;
   --tile-icon: 28px;
+  --tape-tile: 28.28px;
   --shadow-panel: 0 10px 30px rgba(0, 0, 0, 0.35);
 }
 
@@ -285,15 +286,22 @@ button {
   position: absolute;
   inset: 0 auto 0 0;
   width: 0;
-  background: repeating-linear-gradient(-45deg, var(--hazard) 0 10px, #15140f 10px 20px);
-  background-size: 28.28px 28.28px;
+  overflow: hidden;
   transition: width 0.25s ease-out;
+}
+
+.meter-fill::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 0 calc(-1 * var(--tape-tile));
+  background: repeating-linear-gradient(-45deg, var(--hazard) 0 10px, #15140f 10px 20px);
+  background-size: var(--tape-tile) var(--tape-tile);
   animation: tape 1.2s linear infinite;
 }
 
 @keyframes tape {
   to {
-    background-position: 28.28px 0;
+    transform: translateX(var(--tape-tile));
   }
 }
 
@@ -775,8 +783,11 @@ button {
 
 @media (prefers-reduced-motion: reduce) {
   .meter-fill {
-    animation: none;
     transition: none;
+  }
+
+  .meter-fill::before {
+    animation: none;
   }
 
   .toast {
