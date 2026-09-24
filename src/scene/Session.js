@@ -1,4 +1,4 @@
-import { BALL, CELL_METERS, COMPLETION, CUTTER, FIST, FRAGMENTS, GRAVITY, IMPACT, KATANA, LAVA, LIGHTNING, PRESS, SAW, SHOCKWAVE, SPECIMEN } from '../config.js';
+import { BALL, CELL_METERS, COMPLETION, CUTTER, FRAGMENTS, GRAVITY, IMPACT, KATANA, LAVA, LIGHTNING, PRESS, SAW, SHOCKWAVE, SPECIMEN } from '../config.js';
 import { wholePercent } from '../core/format.js';
 import { TAU, clamp, insidePolygon, lerp, normalize, randomBetween, sum } from '../core/math.js';
 import { Fragment, cellMapper } from '../destruction/Fragment.js';
@@ -679,16 +679,6 @@ export class Session {
       if (grid.isSolidAt(cellX, cellY)) return fragment.toWorld(cellX, cellY);
     }
     return null;
-  }
-
-  punch(blow, [dirX, dirY]) {
-    this.strike(blow);
-    this.sweep((px, py) => {
-      const distance = Math.hypot(px - blow.x, py - blow.y);
-      if (distance > FIST.reach) return null;
-      const share = 1 - distance / FIST.reach;
-      return [dirX * FIST.shove * share, dirY * FIST.shove * share - FIST.lift * share];
-    }, FIST.heft);
   }
 
   stamp(outline) {

@@ -72,6 +72,8 @@ export const ARSENAL = Object.freeze([
     label: '기관총',
     arm: (session) => new Gun(session.room, {
       onFire: (round) => session.pepper(round),
+      onMotor: (cadence) => session.sound.cue('motor', cadence),
+      onSpinDown: () => session.sound.cue('spindown'),
     }),
   },
   {
@@ -79,6 +81,7 @@ export const ARSENAL = Object.freeze([
     label: '번개',
     arm: (session) => new Lightning(session.room, {
       onStrike: (path, blow) => session.electrocute(path, blow),
+      onCharge: () => session.sound.cue('static'),
     }),
   },
   {
@@ -87,7 +90,7 @@ export const ARSENAL = Object.freeze([
     arm: (session) => new BlackHole(session.room, {
       onFeed: (maw) => session.devour(maw),
       onSweep: (thrust) => session.sweep(thrust, BLACKHOLE.heft),
-      onHum: (cadence) => session.sound.cue('void', cadence),
+      onHum: (cadence, size) => session.sound.cue('void', cadence, size),
       onCollapse: (blow) => session.strike(blow),
     }),
   },
@@ -95,7 +98,7 @@ export const ARSENAL = Object.freeze([
     key: 'fist',
     label: '주먹',
     arm: (session) => new Fist(session.room, {
-      onPunch: (blow, direction) => session.punch(blow, direction),
+      onPunch: (blow) => session.strike(blow),
       onSwing: () => session.sound.cue('swing'),
     }),
   },
@@ -104,7 +107,8 @@ export const ARSENAL = Object.freeze([
     label: '진자',
     arm: (session) => new Pendulum(session.room, session.physics, session, {
       onHit: (blow) => session.strike(blow),
-      onGrab: () => session.sound.cue('creak'),
+      onGrab: () => session.sound.cue('latch'),
+      onPass: (rush, beat) => session.sound.cue('pass', rush, beat),
     }),
   },
   {

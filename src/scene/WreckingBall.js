@@ -1,8 +1,7 @@
 import { BALL } from '../config.js';
-import { radiate } from '../core/canvas.js';
+import { radiate, steel } from '../core/canvas.js';
 import { TAU, easeIn, easeOut, randomBetween } from '../core/math.js';
 import { Layer } from '../physics/PhysicsWorld.js';
-import { paintChain, strokeOutlined } from './Chain.js';
 import { Gantry } from './Gantry.js';
 import { Pulse } from './Pulse.js';
 import { Tool } from './Tool.js';
@@ -10,6 +9,7 @@ import { Tool } from './Tool.js';
 const GROUND_TOLERANCE = 0.004;
 const LUG = Object.freeze({ radius: BALL.radius * 0.24, width: BALL.radius * 0.1, center: -BALL.radius * 1.14 });
 const HANG = LUG.radius - LUG.center;
+const LINK = Object.freeze({ pitch: 0.017, length: 0.024, width: 0.013, thickness: 0.0035 });
 const SHELL = [[0, '#fff3c4'], [0.22, '#ffb347'], [0.58, '#e8430e'], [1, '#6b1005']];
 const SHINE = Object.freeze({ x: -0.3, y: -0.35, core: 0.08 });
 const HALO = Object.freeze({ reach: 1.9, flicker: [0.94, 1.06], inner: '255,150,60', outer: '255,70,20', alpha: 0.5 });
@@ -17,6 +17,28 @@ const LUG_GLOW = '#e0561c';
 const OUTLINE = 'rgba(40,6,2,0.6)';
 const OUTLINE_WIDTH = 1.2;
 const BODY_SURFACE = Object.freeze({ ...BALL.surface, groups: Layer.tool });
+
+function strokeOutlined(context, pixel, thickness, ink) {
+  context.lineWidth = thickness + OUTLINE_WIDTH * 2 * pixel;
+  context.strokeStyle = OUTLINE;
+  context.stroke();
+  context.lineWidth = thickness;
+  context.strokeStyle = ink;
+  context.stroke();
+}
+
+function traceChain(context, x, bottom, top) {
+  context.beginPath();
+  for (let y = bottom, index = 0; y > top; y -= LINK.pitch, index++) {
+    if (index % 2) {
+      context.moveTo(x, y);
+      context.lineTo(x, y - LINK.length);
+    } else {
+      context.moveTo(x + LINK.width / 2, y - LINK.length / 2);
+      context.ellipse(x, y - LINK.length / 2, LINK.width / 2, LINK.length / 2, 0, 0, TAU);
+    }
+  }
+}
 
 function drawHalo(context) {
   radiate(context, 0, 0, BALL.radius * HALO.reach * randomBetween(...HALO.flicker), [
@@ -46,7 +68,7 @@ function drawBall(context, pixel, { x, y, angle, alpha }) {
   context.rotate(angle);
   context.beginPath();
   context.arc(0, LUG.center, LUG.radius, 0, TAU);
-  strokeOutlined(context, pixel, LUG.width, LUG_GLOW, OUTLINE);
+  strokeOutlined(context, pixel, LUG.width, LUG_GLOW);
   context.rotate(-angle);
   drawShell(context, pixel);
   context.restore();
@@ -219,7 +241,8 @@ export class WreckingBall extends Tool {
   drawRig(context, pixel) {
     const { x, sky } = this.gantry;
     const center = this.hold - this.hoist;
-    paintChain(context, pixel, x, center - HANG, sky, OUTLINE);
+    traceChain(context, x, center - HANG, sky);
+    strokeOutlined(context, pixel, LINK.thickness, steel(context, x - LINK.width / 2, 0, x + LINK.width / 2, 0));
     if (this.hooked) drawBall(context, pixel, { x, y: center, angle: 0, alpha: 1 });
   }
 }

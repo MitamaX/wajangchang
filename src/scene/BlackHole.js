@@ -1,17 +1,45 @@
 import { BLACKHOLE } from '../config.js';
 import { radiate } from '../core/canvas.js';
-import { TAU, clamp, easeOut, lerp, polar, randomBetween } from '../core/math.js';
+import { TAU, clamp, easeOut, lerp, randomBetween } from '../core/math.js';
 import { Pulse } from './Pulse.js';
 import { Tool } from './Tool.js';
 
-const LENS = Object.freeze({ reach: 4, alpha: 0.55 });
-const PHOTON = Object.freeze({ reach: 1.18, width: 1.6 });
-const DISK = Object.freeze({ reach: [1.5, 3.4], squash: 0.28, tilt: -0.22, rings: 5, spin: 3.2, dash: [0.9, 0.5], width: 2.2 });
-const MOTE = Object.freeze({ rate: 90, reach: [0.4, 0.8], speed: [0.5, 1.2], swirl: 4, trail: 0.25, width: 1.3 });
+const LENS = Object.freeze({ reach: 6, rings: 12, taper: 0.8, zoom: [0.25, 0.6], twist: 0.9, drift: 0.15 });
+const SHADE = Object.freeze({ reach: 0.85, alpha: 0.55 });
+const PHOTON = Object.freeze({ reach: 1.12, width: 2.2, glow: 1.6 });
+const DISK = Object.freeze({ reach: [1.45, 3.8], squash: 0.26, tilt: -0.22, rings: 8, spin: 3.2, dash: [0.8, 0.35], width: 3, doppler: 0.65 });
+const MOTE = Object.freeze({ rate: 110, reach: [0.3, 0.75], speed: [0.4, 1], swirl: 4, trail: 0.45, width: 1.6 });
+const FLARE = Object.freeze({ zoom: 0.4, core: 0.35, ring: 6 });
 const INK = '0,0,0';
-const HOT = '255,236,200';
-const DISK_TINT = '255,150,70';
+const HOT = '255,244,214';
+const DISK_INNER = '255,214,150';
+const DISK_OUTER = '255,120,50';
 const HALO = '150,110,255';
+
+function lens(context, x, y, radius, zoom, twist) {
+  const matrix = context.getTransform();
+  const center = matrix.transformPoint(new DOMPoint(x, y));
+  const reach = radius * Math.hypot(matrix.a, matrix.b);
+  context.save();
+  context.beginPath();
+  context.arc(x, y, radius, 0, TAU);
+  context.clip();
+  context.setTransform(1, 0, 0, 1, center.x, center.y);
+  context.rotate(twist);
+  context.scale(zoom, zoom);
+  context.drawImage(context.canvas, center.x - reach, center.y - reach, reach * 2, reach * 2, -reach, -reach, reach * 2, reach * 2);
+  context.restore();
+}
+
+function shade(context, x, y, radius, alpha) {
+  const gradient = context.createRadialGradient(x, y, 0, x, y, radius);
+  gradient.addColorStop(0, `rgba(${INK},${alpha})`);
+  gradient.addColorStop(1, `rgba(${INK},0)`);
+  context.fillStyle = gradient;
+  context.beginPath();
+  context.arc(x, y, radius, 0, TAU);
+  context.fill();
+}
 
 export class BlackHole extends Tool {
   constructor(room, { onFeed, onSweep, onHum, onCollapse }) {
@@ -68,7 +96,7 @@ export class BlackHole extends Tool {
   release() {
     if (!this.holding) return;
     this.holding = false;
-    this.flares.push({ x: this.x, y: this.y, radius: this.reach, age: 0 });
+    this.flares.push({ x: this.x, y: this.y, radius: this.reach, size: this.size, age: 0 });
     this.motes = [];
     this.onCollapse(this.blow());
   }
@@ -105,7 +133,7 @@ export class BlackHole extends Tool {
     this.x += (this.aimX - this.x) * follow;
     this.y += (this.aimY - this.y) * follow;
     this.onSweep((x, y) => this.thrust(x, y, dt));
-    if (this.hums.tick(dt)) this.onHum(BLACKHOLE.humSeconds);
+    if (this.hums.tick(dt)) this.onHum(BLACKHOLE.humSeconds, this.size);
     this.gather(dt);
     if (this.feeds.tick(dt)) this.feeding = this.onFeed({ x: this.x, y: this.y, radius: this.horizon, first: !this.feeding });
   }
@@ -136,24 +164,35 @@ export class BlackHole extends Tool {
     const pixel = 1 / pixelsPerMeter;
     this.flares.forEach((flare) => this.drawFlare(context, pixel, flare));
     if (!this.holding) return;
-    const { x, y, horizon } = this;
-    radiate(context, x, y, horizon * LENS.reach, [[0, `rgba(${HALO},${LENS.alpha * this.size})`], [1, `rgba(${HALO},0)`]]);
+    const { x, y, horizon, size } = this;
+    this.warp(context, x, y, horizon, size);
+    shade(context, x, y, this.reach * SHADE.reach, SHADE.alpha * size);
+    radiate(context, x, y, horizon * LENS.reach, [[0, `rgba(${HALO},${0.35 * size})`], [1, `rgba(${HALO},0)`]]);
     context.save();
     context.translate(x, y);
-    this.drawDisk(context, pixel, horizon, Math.PI, 0);
+    this.drawDisk(context, pixel, horizon, Math.PI, TAU);
     context.fillStyle = `rgb(${INK})`;
     context.beginPath();
     context.arc(0, 0, horizon, 0, TAU);
     context.fill();
     context.globalCompositeOperation = 'lighter';
-    context.strokeStyle = `rgba(${HOT},0.9)`;
     context.lineWidth = PHOTON.width * pixel;
+    context.strokeStyle = `rgba(${HOT},0.95)`;
     context.beginPath();
     context.arc(0, 0, horizon * PHOTON.reach, 0, TAU);
     context.stroke();
     this.drawDisk(context, pixel, horizon, 0, Math.PI);
     this.drawMotes(context, pixel);
     context.restore();
+    radiate(context, x, y, horizon * PHOTON.reach * PHOTON.glow, [[0.55, `rgba(${HOT},0)`], [0.7, `rgba(${HOT},${0.5 * size})`], [1, `rgba(${DISK_OUTER},0)`]]);
+  }
+
+  warp(context, x, y, horizon, size) {
+    const zoom = 1 + lerp(...LENS.zoom, size) / LENS.rings;
+    const twist = (LENS.twist * size) / LENS.rings;
+    for (let ring = 0; ring < LENS.rings; ring++) {
+      lens(context, x, y, horizon * LENS.reach * (1 - (ring / LENS.rings) * LENS.taper), zoom, twist + Math.sin(this.time * LENS.drift) * twist);
+    }
   }
 
   drawDisk(context, pixel, horizon, from, to) {
@@ -161,13 +200,18 @@ export class BlackHole extends Tool {
     context.globalCompositeOperation = 'lighter';
     context.rotate(DISK.tilt);
     context.lineWidth = DISK.width * pixel;
+    context.lineCap = 'round';
     for (let ring = 0; ring < DISK.rings; ring++) {
       const share = ring / (DISK.rings - 1);
       const radius = horizon * lerp(...DISK.reach, share);
-      const alpha = (1 - share) * 0.8 * this.size;
-      context.strokeStyle = `rgba(${share < 0.3 ? HOT : DISK_TINT},${alpha})`;
+      const heat = (1 - share) ** 0.7 * this.size;
+      const tint = share < 0.35 ? DISK_INNER : DISK_OUTER;
+      const doppler = context.createLinearGradient(-radius, 0, radius, 0);
+      doppler.addColorStop(0, `rgba(${tint},${heat})`);
+      doppler.addColorStop(1, `rgba(${tint},${heat * (1 - DISK.doppler)})`);
+      context.strokeStyle = doppler;
       context.setLineDash([radius * DISK.dash[0], radius * DISK.dash[1]]);
-      context.lineDashOffset = -this.time * DISK.spin * radius * (1.5 - share);
+      context.lineDashOffset = -this.time * DISK.spin * radius * (1.6 - share);
       context.beginPath();
       context.ellipse(0, 0, radius, radius * DISK.squash, 0, from, to);
       context.stroke();
@@ -176,23 +220,34 @@ export class BlackHole extends Tool {
   }
 
   drawMotes(context, pixel) {
-    context.strokeStyle = `rgba(${DISK_TINT},0.8)`;
     context.lineWidth = MOTE.width * pixel;
-    context.beginPath();
+    context.lineCap = 'round';
     this.motes.forEach(({ angle, distance }) => {
-      context.moveTo(...polar(angle, distance));
-      context.lineTo(...polar(angle - MOTE.trail, distance * 1.08));
+      const heat = 1 - distance / this.reach;
+      context.strokeStyle = `rgba(${heat > 0.6 ? DISK_INNER : DISK_OUTER},${0.35 + 0.6 * heat})`;
+      context.beginPath();
+      context.arc(0, 0, distance, angle - MOTE.trail * heat, angle);
+      context.stroke();
     });
-    context.stroke();
   }
 
-  drawFlare(context, pixel, { x, y, radius, age }) {
+  drawFlare(context, pixel, { x, y, radius, size, age }) {
     const t = age / BLACKHOLE.flareSeconds;
     const fading = 1 - t;
-    radiate(context, x, y, radius * clamp(t * 2, 0.2, 1), [
+    const spread = radius * easeOut(t) * 1.4;
+    lens(context, x, y, spread, 1 + FLARE.zoom * fading * size, 0);
+    radiate(context, x, y, radius * clamp(t * 3, 0.15, 1) * FLARE.core * 3, [
       [0, `rgba(${HOT},${fading})`],
-      [0.3, `rgba(${HALO},${0.6 * fading})`],
+      [0.3, `rgba(${HALO},${0.7 * fading})`],
       [1, `rgba(${HALO},0)`],
     ]);
+    context.save();
+    context.globalCompositeOperation = 'lighter';
+    context.strokeStyle = `rgba(${HOT},${0.8 * fading})`;
+    context.lineWidth = FLARE.ring * pixel * fading;
+    context.beginPath();
+    context.arc(x, y, spread, 0, TAU);
+    context.stroke();
+    context.restore();
   }
 }
