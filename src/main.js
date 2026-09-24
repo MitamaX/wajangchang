@@ -10,7 +10,7 @@ async function launch() {
     loader.track('code', import('./app/App.js')),
     PhysicsWorld.load((fraction) => loader.update('engine', fraction)),
   ]);
-  await App.create();
+  new App();
   loader.close();
 }
 
