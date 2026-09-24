@@ -10,10 +10,10 @@ export function tileButton({ key, label, icon, shortcut = '' }) {
   return button;
 }
 
-export function chipButton({ key, label }) {
+export function chipButton({ key, label, className }) {
   const button = document.createElement('button');
   button.type = 'button';
-  button.className = 'choice chip';
+  button.className = className;
   button.dataset.key = key;
   button.setAttribute('aria-pressed', 'false');
   button.textContent = label;

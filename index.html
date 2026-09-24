@@ -33,27 +33,27 @@
             <svg viewBox="0 0 10 28" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m2 3 6 11-6 11"/></svg>
           </button>
         </nav>
-        <div class="setup" id="setup" hidden>
-          <section class="setup-step" id="imageStep" aria-labelledby="imageStepLabel">
+        <div class="dock" id="dock" hidden>
+          <section class="dock-step" id="imageStep" aria-labelledby="imageStepLabel">
             <span class="label" id="imageStepLabel">이미지</span>
-            <div class="chip-grid" role="group" aria-labelledby="imageStepLabel">
-              <button class="choice chip" id="setupUpload" type="button" data-key="upload" aria-pressed="false">
+            <div class="option-grid" role="group" aria-labelledby="imageStepLabel">
+              <button class="choice option" id="dockUpload" type="button" data-key="upload" aria-pressed="false">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 15V4M7.5 8.5 12 4l4.5 4.5"/><path d="M4 14v4a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-4"/></svg>
                 <span>올리기</span>
               </button>
             </div>
-            <div class="setup-actions">
+            <div class="dock-actions">
               <button class="btn btn-accent btn-large" id="nextButton" type="button">다음</button>
             </div>
           </section>
-          <section class="setup-step" id="materialStep" aria-labelledby="materialStepLabel" inert>
+          <section class="dock-step" id="materialStep" aria-labelledby="materialStepLabel" inert>
             <span class="label" id="materialStepLabel">재질</span>
-            <div class="tile-row" id="materials" role="group" aria-labelledby="materialStepLabel"></div>
-            <div class="setup-actions">
+            <div class="tile-row" id="dockMaterials" role="group" aria-labelledby="materialStepLabel"></div>
+            <div class="dock-actions">
               <button class="btn btn-ghost btn-large" id="backButton" type="button" aria-label="이전">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5 8 12l7 7"/></svg>
               </button>
-              <button class="btn btn-accent btn-large" id="startButton" type="button">시작!</button>
+              <button class="btn btn-accent btn-large" id="dockStart" type="button">시작!</button>
             </div>
           </section>
         </div>
@@ -69,6 +69,26 @@
               <svg class="sound-off" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 5 6.5 9H3v6h3.5L11 19z" fill="currentColor" fill-opacity=".2"/><path d="M16 9.5l5 5M21 9.5l-5 5"/></svg>
             </button>
           </div>
+          <div class="setup" id="setup" hidden>
+            <section class="setup-side">
+              <span class="label">이미지</span>
+              <div class="setup-source">
+                <img class="setup-thumb" id="setupThumb" alt="">
+                <div class="setup-picks">
+                  <button class="btn btn-accent btn-compact" id="setupUpload" type="button">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 15V4M7.5 8.5 12 4l4.5 4.5"/><path d="M4 14v4a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-4"/></svg>
+                    <span>이미지 올리기</span>
+                  </button>
+                  <div class="chip-row" id="samples" role="group" aria-label="예시"></div>
+                </div>
+              </div>
+            </section>
+            <section class="setup-side">
+              <span class="label">재질</span>
+              <div class="tile-row" id="materials" role="group" aria-label="재질"></div>
+              <button class="btn btn-accent btn-large" id="startButton" type="button">시작!</button>
+            </section>
+          </div>
           <div class="progress loader" id="loader">
             <span class="label">불러오는 중</span>
             <div class="meter" id="loaderMeter" role="progressbar" aria-label="불러오기" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><div class="meter-fill" id="loaderFill"></div></div>
@@ -79,7 +99,7 @@
         </section>
       </main>
 
-      <div class="overlay" id="result" hidden role="dialog" aria-modal="true" aria-label="파기 보고서">
+      <div class="overlay" id="result" hidden role="dialog" aria-modal="true" aria-label="파기 보고서" data-stage="report">
         <div class="result-inner">
           <button class="report-frame" id="reportFrame" type="button" disabled>
             <span class="report-stage">
@@ -87,7 +107,7 @@
             </span>
             <span class="report-hint">터치하여 계속</span>
           </button>
-          <section class="share" id="share" hidden>
+          <aside class="share">
             <div class="preview-frame">
               <div class="preview" id="preview">
                 <img id="previewPoster" alt="">
@@ -115,7 +135,7 @@
                 <button class="btn btn-accent btn-large btn-block" id="continueButton" type="button">계속하기</button>
               </div>
             </div>
-          </section>
+          </aside>
         </div>
       </div>
 

@@ -1,8 +1,9 @@
 import { SoundBoard } from '../audio/SoundBoard.js';
-import { COMPLETION, RECORDING } from '../config.js';
+import { COMPLETION, RECORDING, VIEW } from '../config.js';
 import { createCanvas } from '../core/canvas.js';
-import { pixelRatio, prefersReducedMotion } from '../core/display.js';
+import { compactLayout, pixelRatio, prefersReducedMotion } from '../core/display.js';
 import { loadFonts } from '../core/fonts.js';
+import { coverThumbnail } from '../core/images.js';
 import { fileSafe } from '../core/naming.js';
 import { MATERIALS } from '../destruction/materials.js';
 import { Specimen } from '../destruction/Specimen.js';
@@ -27,6 +28,7 @@ import { Toast } from '../ui/Toast.js';
 import { ToolRack } from '../ui/ToolRack.js';
 
 const MAX_FRAME_SECONDS = 0.05;
+const THUMB_SIZE = 220;
 const PLACEHOLDER_METERS = 0.6;
 const DEFAULT_SAMPLE = 'monday';
 const DEFAULT_MATERIAL = 'glass';
@@ -150,14 +152,18 @@ export class App {
     this.viewWidth = Math.max(1, bounds.width);
     this.viewHeight = Math.max(1, bounds.height);
     this.renderer.resize(this.viewWidth, this.viewHeight, pixelRatio());
-    if (this.session && !this.session.started) this.session.refit(this.aspect);
-    const room = this.session ? this.session.room : Room.fitting(PLACEHOLDER_METERS, PLACEHOLDER_METERS, this.aspect);
+    if (this.session && !this.session.started) this.session.refit(this.roomAspect);
+    const room = this.session ? this.session.room : Room.fitting(PLACEHOLDER_METERS, PLACEHOLDER_METERS, this.roomAspect);
     this.camera.frame(this.viewWidth, this.viewHeight, room);
     this.renderer.stage(this.camera, room, this.session ? this.session.debris.resting : []);
   }
 
-  get aspect() {
-    return this.viewWidth / this.viewHeight;
+  get roomAspect() {
+    return compactLayout() ? this.viewWidth / this.viewHeight : VIEW.frameAspect;
+  }
+
+  get wieldsInSetup() {
+    return !compactLayout();
   }
 
   useSample(key) {
@@ -166,9 +172,9 @@ export class App {
   }
 
   useImage(source, name, sampleKey) {
-    this.subject = { source, name, sampleKey };
+    this.subject = { source, name, sampleKey, thumb: coverThumbnail(source, THUMB_SIZE) };
     this.status.name = name;
-    this.setup.selectImage(sampleKey);
+    this.setup.selectImage(this.subject.thumb, sampleKey);
     this.prepare(this.materialKey);
   }
 
@@ -189,8 +195,9 @@ export class App {
     this.reset();
     const material = MATERIALS[materialKey];
     const specimen = Specimen.create(this.subject.source, material);
-    const room = Room.fitting(specimen.widthMeters, specimen.heightMeters, this.aspect);
+    const room = Room.fitting(specimen.widthMeters, specimen.heightMeters, this.roomAspect);
     this.session = new Session({ specimen, material, room, sound: this.sound, tool: this.toolKey, onEngage: () => this.engage() });
+    if (this.wieldsInSetup) this.session.wield();
     this.carry = 0;
     this.resize();
     this.status.material = material.label;

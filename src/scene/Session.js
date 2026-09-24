@@ -105,7 +105,7 @@ export class Session {
 
   end() {
     if (this.endedAt === null) this.endedAt = this.clock;
-    this.tools.forEach((tool) => tool.stow());
+    this.stowTools();
   }
 
   wield() {
@@ -116,6 +116,11 @@ export class Session {
     if (aspect === this.room.aspect) return;
     this.room.fit(aspect);
     this.physics.buildRoom(this.room.halfWidth);
+    this.stowTools();
+  }
+
+  stowTools() {
+    this.tools.forEach((tool) => tool.stow());
   }
 
   equip(key) {

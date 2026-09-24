@@ -1,16 +1,16 @@
-import { pixelRatio, prefersReducedMotion } from '../core/display.js';
+import { compactLayout, pixelRatio, prefersReducedMotion } from '../core/display.js';
 import { REPORT_ASPECT, STAMP_DELAY, drawReportCard } from '../report/ReportCard.js';
 import { byId } from './dom.js';
 import { Meter } from './Meter.js';
 
 const CARD_SECONDS = 1.5;
+const CONTINUE_DELAY = 1000;
 
 export class ResultDialog {
   constructor({ onShare, onSave, onContinue }) {
     this.root = byId('result');
     this.reportFrame = byId('reportFrame');
     this.card = byId('reportCanvas');
-    this.share = byId('share');
     this.preview = byId('preview');
     this.video = byId('previewVideo');
     this.poster = byId('previewPoster');
@@ -20,13 +20,15 @@ export class ResultDialog {
     this.shareButton = byId('shareButton');
     this.saveButton = byId('saveButton');
     this.saveLabel = byId('saveLabel');
+    this.continueButton = byId('continueButton');
     this.animation = 0;
     this.stampTimer = 0;
+    this.continueTimer = 0;
     this.url = null;
     this.reportFrame.addEventListener('click', () => this.reveal());
     this.shareButton.addEventListener('click', onShare);
     this.saveButton.addEventListener('click', onSave);
-    byId('continueButton').addEventListener('click', onContinue);
+    this.continueButton.addEventListener('click', onContinue);
   }
 
   get open() {
@@ -43,19 +45,21 @@ export class ResultDialog {
 
   settle() {
     this.reportFrame.disabled = false;
-    this.reportFrame.focus({ preventScroll: true });
   }
 
   reveal() {
-    this.reportFrame.hidden = true;
-    this.share.hidden = false;
+    this.root.dataset.stage = 'share';
+    clearTimeout(this.continueTimer);
+    this.continueTimer = setTimeout(() => {
+      this.continueButton.disabled = false;
+    }, CONTINUE_DELAY);
     this.shareButton.focus({ preventScroll: true });
   }
 
   reset() {
+    this.root.dataset.stage = 'report';
     this.reportFrame.disabled = true;
-    this.reportFrame.hidden = false;
-    this.share.hidden = true;
+    this.continueButton.disabled = compactLayout();
     this.releaseVideo();
     this.video.hidden = true;
     this.render.hidden = false;
@@ -124,6 +128,7 @@ export class ResultDialog {
   close() {
     cancelAnimationFrame(this.animation);
     clearTimeout(this.stampTimer);
+    clearTimeout(this.continueTimer);
     this.releaseVideo();
     this.root.hidden = true;
   }

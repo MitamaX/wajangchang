@@ -7,30 +7,42 @@ const UPLOAD_KEY = 'upload';
 const SELECTED = '[aria-pressed="true"]';
 const Step = Object.freeze({ IMAGE: 'image', MATERIAL: 'material' });
 
+const sampleChips = (className) => SAMPLE_ORDER.map((key) => chipButton({ key, label: SAMPLES[key].name, className }));
+const materialTiles = () => MATERIAL_ORDER.map((key) => tileButton({ key, label: MATERIALS[key].label, icon: ICONS[key] }));
+
 export class SetupPanel {
   constructor({ onMaterial, onSample, onUpload, onStart }) {
-    this.root = byId('setup');
+    this.panels = [byId('setup'), byId('dock')];
+    this.thumb = byId('setupThumb');
     this.steps = { [Step.IMAGE]: byId('imageStep'), [Step.MATERIAL]: byId('materialStep') };
-    const upload = byId('setupUpload');
-    const samples = SAMPLE_ORDER.map((key) => chipButton({ key, label: SAMPLES[key].name }));
-    this.images = [...samples, upload];
-    this.materials = MATERIAL_ORDER.map((key) => tileButton({ key, label: MATERIALS[key].label, icon: ICONS[key] }));
-    upload.before(...samples);
-    byId('materials').append(...this.materials);
-    samples.forEach((button) => button.addEventListener('click', () => onSample(button.dataset.key)));
+    const panelSamples = sampleChips('chip');
+    const dockSamples = sampleChips('choice option');
+    const panelMaterials = materialTiles();
+    const dockMaterials = materialTiles();
+    const dockUpload = byId('dockUpload');
+    byId('samples').append(...panelSamples);
+    dockUpload.before(...dockSamples);
+    byId('materials').append(...panelMaterials);
+    byId('dockMaterials').append(...dockMaterials);
+    this.images = [...panelSamples, ...dockSamples, dockUpload];
+    this.materials = [...panelMaterials, ...dockMaterials];
+    [...panelSamples, ...dockSamples].forEach((button) => button.addEventListener('click', () => onSample(button.dataset.key)));
     this.materials.forEach((button) => button.addEventListener('click', () => onMaterial(button.dataset.key)));
-    upload.addEventListener('click', onUpload);
+    [byId('setupUpload'), dockUpload].forEach((button) => button.addEventListener('click', onUpload));
+    [byId('startButton'), byId('dockStart')].forEach((button) => button.addEventListener('click', onStart));
     byId('nextButton').addEventListener('click', () => this.turn(Step.MATERIAL));
     byId('backButton').addEventListener('click', () => this.turn(Step.IMAGE));
-    byId('startButton').addEventListener('click', onStart);
   }
 
   present() {
     this.show(Step.IMAGE);
-    this.root.hidden = false;
+    this.panels.forEach((panel) => {
+      panel.hidden = false;
+    });
   }
 
-  selectImage(sampleKey) {
+  selectImage(thumb, sampleKey) {
+    this.thumb.src = thumb.toDataURL('image/png');
     markSelected(this.images, 'aria-pressed', sampleKey ?? UPLOAD_KEY);
   }
 
@@ -50,6 +62,8 @@ export class SetupPanel {
   }
 
   hide() {
-    this.root.hidden = true;
+    this.panels.forEach((panel) => {
+      panel.hidden = true;
+    });
   }
 }
