@@ -28,12 +28,18 @@ export class SpillLayer {
     if (!world) return;
     const { left, top, width, height } = this.stage.getBoundingClientRect();
     context.save();
-    context.beginPath();
-    context.rect(0, 0, canvas.width, canvas.height);
-    context.roundRect(left * dpr, top * dpr, width * dpr, height * dpr, this.corner * dpr);
-    context.clip('evenodd');
     context.setTransform(new DOMMatrix().translateSelf(left * dpr, top * dpr).multiply(world));
     paint(context);
     context.restore();
+    this.uncover(left * dpr, top * dpr, width * dpr, height * dpr);
+  }
+
+  uncover(x, y, width, height) {
+    const { context } = this;
+    context.globalCompositeOperation = 'destination-out';
+    context.beginPath();
+    context.roundRect(x, y, width, height, this.corner * this.dpr);
+    context.fill();
+    context.globalCompositeOperation = 'source-over';
   }
 }
