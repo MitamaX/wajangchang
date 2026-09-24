@@ -1,4 +1,4 @@
-import RAPIER from '@dimforge/rapier2d-compat';
+import SIMD_RAPIER from '@dimforge/rapier2d-simd-compat';
 import { GRAVITY, MAX_PHYSICS_STEPS, PHYSICS_STEP } from '../config.js';
 
 const SLAB = 1;
@@ -19,9 +19,16 @@ export const Layer = Object.freeze({
 
 const ROOM_GROUPS = interaction(Membership.ROOM, Membership.FRAGMENT);
 
+const SIMD_PROBE = new Uint8Array([0, 97, 115, 109, 1, 0, 0, 0, 1, 5, 1, 96, 0, 1, 123, 3, 2, 1, 0, 10, 10, 1, 8, 0, 65, 0, 253, 15, 253, 98, 11]);
+
+const loadEngine = async () => (WebAssembly.validate(SIMD_PROBE) ? SIMD_RAPIER : (await import('@dimforge/rapier2d-compat')).default);
+
+let RAPIER = null;
+
 export class PhysicsWorld {
-  static load() {
-    return RAPIER.init();
+  static async load() {
+    RAPIER = await loadEngine();
+    await RAPIER.init();
   }
 
   constructor(halfWidth) {
