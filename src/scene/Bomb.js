@@ -1,7 +1,6 @@
-import { BOMB } from '../config.js';
+import { BOMB, GRAVITY } from '../config.js';
 import { radiate, traceRoundRect } from '../core/canvas.js';
 import { TAU, lerp, randomBetween } from '../core/math.js';
-import { Perch } from './Perch.js';
 
 const SIZE = BOMB.size;
 const BLINK_DUTY = 0.5;
@@ -64,7 +63,7 @@ function paintFuse(context, pixel, remaining) {
   return fusePoint(remaining);
 }
 
-export function paintFuseSpark(context, pixel, x, y) {
+function paintSpark(context, pixel, x, y) {
   radiate(context, x, y, SPARK.reach * randomBetween(...SPARK.flicker), [
     [0, `rgba(${WHITE_HOT},0.95)`],
     [0.3, `rgba(${EMBER},0.7)`],
@@ -92,13 +91,17 @@ export function drawBomb(context, pixel, { x, y, angle = 0, remaining = 1, lit =
   paintShell(context, pixel);
   paintLamp(context, lit);
   const tip = paintFuse(context, pixel, remaining);
-  if (burning) paintFuseSpark(context, pixel, ...tip);
+  if (burning) paintSpark(context, pixel, ...tip);
   context.restore();
 }
 
-export class Bomb extends Perch {
+export class Bomb {
   constructor(x, y, anchor) {
-    super(x, y, anchor, SIZE);
+    this.x = x;
+    this.y = y;
+    this.angle = 0;
+    this.fall = 0;
+    this.anchor = anchor;
     this.age = 0;
     this.phase = BLINK_DUTY;
     this.lit = false;
@@ -116,6 +119,20 @@ export class Bomb extends Perch {
     this.age += dt;
     this.follow(dt, surface);
     return this.blink(dt);
+  }
+
+  follow(dt, surface) {
+    const pose = this.anchor && surface.hold(this.anchor);
+    if (pose) {
+      Object.assign(this, pose);
+      this.fall = 0;
+      return;
+    }
+    this.anchor = surface.grip(this.x, this.y, SIZE);
+    if (this.anchor) return;
+    this.fall += GRAVITY * dt;
+    this.y = Math.min(this.y + this.fall * dt, -SIZE);
+    if (this.y === -SIZE) this.fall = 0;
   }
 
   blink(dt) {

@@ -72,11 +72,6 @@ export function inkOutline(context, pixel) {
   context.lineWidth = OUTLINE.width * pixel;
 }
 
-export function strokeOutline(context, pixel) {
-  inkOutline(context, pixel);
-  context.stroke();
-}
-
 export function strokeLayers(context, pixel, layers) {
   layers.forEach(([width, color]) => {
     context.strokeStyle = color;

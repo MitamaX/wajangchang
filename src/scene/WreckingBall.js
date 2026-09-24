@@ -4,10 +4,10 @@ import { TAU, easeIn, easeOut, randomBetween } from '../core/math.js';
 import { Layer } from '../physics/PhysicsWorld.js';
 import { paintChain, strokeOutlined } from './Chain.js';
 import { Gantry } from './Gantry.js';
-import { Projectile, retire } from './Projectile.js';
 import { Pulse } from './Pulse.js';
 import { Tool } from './Tool.js';
 
+const GROUND_TOLERANCE = 0.004;
 const LUG = Object.freeze({ radius: BALL.radius * 0.24, width: BALL.radius * 0.1, center: -BALL.radius * 1.14 });
 const HANG = LUG.radius - LUG.center;
 const SHELL = [[0, '#fff3c4'], [0.22, '#ffb347'], [0.58, '#e8430e'], [1, '#6b1005']];
@@ -52,12 +52,49 @@ function drawBall(context, pixel, { x, y, angle, alpha }) {
   context.restore();
 }
 
-class Ball extends Projectile {
+class Ball {
   constructor(body) {
-    super(body, BALL);
+    this.body = body;
     this.sears = new Pulse(BALL.searSeconds);
+    this.speed = 0;
+    this.age = 0;
+    this.still = 0;
+    this.fade = 0;
+    this.grounded = false;
     this.touched = false;
     this.searing = false;
+    this.sync();
+  }
+
+  get alpha() {
+    return 1 - this.fade / BALL.fadeSeconds;
+  }
+
+  get cooling() {
+    return this.fade > 0;
+  }
+
+  get gone() {
+    return this.fade >= BALL.fadeSeconds;
+  }
+
+  get floored() {
+    return this.y + BALL.radius >= -GROUND_TOLERANCE;
+  }
+
+  sync() {
+    const { x, y } = this.body.translation();
+    const velocity = this.body.linvel();
+    const speed = Math.hypot(velocity.x, velocity.y);
+    this.surge = Math.max(this.speed, speed);
+    Object.assign(this, { x, y, speed, angle: this.body.rotation() });
+  }
+
+  update(dt) {
+    this.sync();
+    this.age += dt;
+    this.still = this.grounded && this.speed < BALL.restSpeed ? this.still + dt : 0;
+    if (this.cooling || this.still >= BALL.restSeconds || this.age >= BALL.lifeSeconds) this.fade += dt;
   }
 }
 
@@ -137,7 +174,8 @@ export class WreckingBall extends Tool {
     this.steer(dt);
     this.balls.forEach((ball) => this.roll(ball, dt));
     if (this.balls.some((ball) => ball.searing) && this.sizzles.tick(dt)) this.onSizzle(BALL.sizzleSeconds);
-    this.balls = retire(this.balls, this.physics);
+    this.balls.filter((ball) => ball.gone).forEach((ball) => this.physics.removeBody(ball.body));
+    this.balls = this.balls.filter((ball) => !ball.gone);
   }
 
   steer(dt) {
@@ -157,8 +195,13 @@ export class WreckingBall extends Tool {
 
   roll(ball, dt) {
     ball.update(dt);
-    if (ball.touchdown(BALL.landSpeed)) this.onLand(ball.x);
+    if (!ball.grounded && ball.floored) this.land(ball);
     if (!ball.cooling && ball.sears.tick(dt)) this.sear(ball);
+  }
+
+  land(ball) {
+    ball.grounded = true;
+    if (ball.surge >= BALL.landSpeed) this.onLand(ball.x);
   }
 
   sear(ball) {

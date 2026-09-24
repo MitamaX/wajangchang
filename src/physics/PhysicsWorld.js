@@ -93,15 +93,7 @@ export class PhysicsWorld {
   }
 
   attachBall(body, radius, surface) {
-    return this.attach(body, RAPIER.ColliderDesc.ball(radius), surface);
-  }
-
-  attachBox(body, halfWidth, halfHeight, surface) {
-    return this.attach(body, RAPIER.ColliderDesc.cuboid(halfWidth, halfHeight), surface);
-  }
-
-  attach(body, description, surface) {
-    return this.world.createCollider(surfaced(description, surface), body);
+    return this.world.createCollider(surfaced(RAPIER.ColliderDesc.ball(radius), surface), body);
   }
 
   removeCollider(collider) {

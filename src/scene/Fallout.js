@@ -1,4 +1,4 @@
-import { CELL_METERS, DUST } from '../config.js';
+import { CELL_METERS } from '../config.js';
 import { clamp, randomBetween } from '../core/math.js';
 import { velocityAt, worldFromCell } from '../destruction/Fragment.js';
 
@@ -10,9 +10,6 @@ const SURFACE_DUST = 'rgba(170,172,170,1)';
 const SURFACE_PUFF = 10;
 const SMOKE = 'rgba(60,56,52,1)';
 const EMBER = 'rgba(255,150,60,1)';
-const MIST = 'rgba(215,240,255,1)';
-const FUME = 'rgba(150,200,60,1)';
-const WATER = 'rgba(170,215,255,1)';
 const HEADED_SPREAD = 0.45;
 const CELLS_PER_EMBER = 12;
 const MAX_EMBERS = 16;
@@ -25,7 +22,6 @@ const SPRAYS = Object.freeze({
   spark: { speed: [1.2, 3], size: [0.0015, 0.003], direction: UPWARD, spread: 1.4 },
   smoke: { speed: [0.1, 0.4], size: [0.004, 0.008], direction: UPWARD, spread: 0.6 },
   ember: { speed: [0.6, 2.4], size: [0.002, 0.0045], direction: UPWARD, spread: 1.5 },
-  mist: { speed: [0.05, 0.3], size: [0.006, 0.012] },
 });
 
 const GLOW_COLORS = Object.freeze({ glint: 'rgba(255,255,255,1)', spark: 'rgba(255,200,110,1)' });
@@ -57,18 +53,6 @@ export class Fallout {
     this.debris.spray('ember', x, y, { ...SPRAYS.ember, count, color });
   }
 
-  chill(x, y, count) {
-    this.debris.spray('mist', x, y, { ...SPRAYS.mist, count, color: MIST });
-  }
-
-  splash(x, y, count) {
-    this.debris.spray('mist', x, y, { ...SPRAYS.mist, count, color: WATER, direction: -Math.PI / 2, spread: 0.8 });
-  }
-
-  fume(x, y, count) {
-    this.debris.spray('smoke', x, y, { ...SPRAYS.smoke, count, color: FUME });
-  }
-
   blaze(x, y, count, color) {
     this.debris.spray('ember', x, y, { ...SPRAYS.ember, count, color, direction: null });
   }
@@ -77,34 +61,18 @@ export class Fallout {
     this.debris.spray('dust', x, y, { ...SPRAYS.dust, count: SURFACE_PUFF, color: SURFACE_DUST, direction: UPWARD, spread: 1.2 });
   }
 
-  twinkle(x, y, count, color) {
-    this.debris.spray('glint', x, y, { ...SPRAYS.glint, count, color });
-  }
-
   spill(fragment, removed) {
-    this.shed(fragment, removed, MAX_SPILL, (x, y, vx, vy, size, color) => {
-      this.chip(x, y, vx + randomBetween(-0.6, 0.6), vy - randomBetween(0.2, 1.2), size, color);
-    });
-  }
-
-  disperse(fragment, removed) {
-    const { flakes, wind } = DUST;
-    this.shed(fragment, removed, flakes, (x, y, vx, vy, size, color) => {
-      this.debris.add('flake', { x, y, vx: vx + randomBetween(...wind.x), vy: vy + randomBetween(...wind.y), size, color });
-    });
-  }
-
-  shed(fragment, removed, limit, emit) {
     const pose = fragment.pose();
     const { width } = fragment.grid;
-    const stride = Math.max(1, Math.round(removed.length / limit));
+    const stride = Math.max(1, Math.round(removed.length / MAX_SPILL));
     for (let i = 0; i < removed.length; i += stride) {
       const cellX = (removed[i] % width) + 0.5;
       const cellY = Math.floor(removed[i] / width) + 0.5;
       const [x, y] = worldFromCell(pose, cellX, cellY);
       const [vx, vy] = velocityAt(pose, x, y);
       const size = CELL_METERS * randomBetween(0.8, 1.6) * Math.sqrt(stride);
-      emit(x, y, vx, vy, size, this.specimen.colorAt(fragment.originX + cellX, fragment.originY + cellY));
+      const color = this.specimen.colorAt(fragment.originX + cellX, fragment.originY + cellY);
+      this.chip(x, y, vx + randomBetween(-0.6, 0.6), vy - randomBetween(0.2, 1.2), size, color);
     }
   }
 

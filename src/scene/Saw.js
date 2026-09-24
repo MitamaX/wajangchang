@@ -76,11 +76,6 @@ function paintTeeth(context, pixel, angle, speed) {
   });
 }
 
-export function paintBlade(context, pixel, angle, speed) {
-  paintTeeth(context, pixel, angle, speed);
-  paintPlate(context, pixel, angle);
-}
-
 function paintPlate(context, pixel, angle) {
   context.save();
   context.rotate(angle);
@@ -178,7 +173,8 @@ export class Saw extends Tool {
     const shake = this.biting ? SAW.shake : 0;
     context.save();
     context.translate(this.bladeX + randomBetween(-shake, shake), this.bladeY + randomBetween(-shake, shake));
-    paintBlade(context, pixel, this.angle, this.speed);
+    paintTeeth(context, pixel, this.angle, this.speed);
+    paintPlate(context, pixel, this.angle);
     context.restore();
   }
 }

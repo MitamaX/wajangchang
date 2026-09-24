@@ -1,8 +1,8 @@
 import { BLACKHOLE } from '../config.js';
 import { radiate } from '../core/canvas.js';
-import { TAU, clamp, lerp, polar, randomBetween } from '../core/math.js';
-import { Field } from './Field.js';
+import { TAU, clamp, easeOut, lerp, polar, randomBetween } from '../core/math.js';
 import { Pulse } from './Pulse.js';
+import { Tool } from './Tool.js';
 
 const LENS = Object.freeze({ reach: 4, alpha: 0.55 });
 const PHOTON = Object.freeze({ reach: 1.18, width: 1.6 });
@@ -13,14 +13,40 @@ const HOT = '255,236,200';
 const DISK_TINT = '255,150,70';
 const HALO = '150,110,255';
 
-export class BlackHole extends Field {
+export class BlackHole extends Tool {
   constructor(room, { onFeed, onSweep, onHum, onCollapse }) {
-    super(room, BLACKHOLE, { onSweep, onHum, onRelease: onCollapse });
+    super(room);
     this.onFeed = onFeed;
+    this.onSweep = onSweep;
+    this.onHum = onHum;
+    this.onCollapse = onCollapse;
+    this.holding = false;
     this.feeding = false;
+    this.x = 0;
+    this.y = 0;
+    this.growth = 0;
+    this.time = 0;
     this.spawned = 0;
     this.motes = [];
+    this.flares = [];
     this.feeds = new Pulse(BLACKHOLE.feedSeconds);
+    this.hums = new Pulse(BLACKHOLE.humSeconds);
+  }
+
+  get spills() {
+    return false;
+  }
+
+  get busy() {
+    return this.holding || this.flares.length > 0;
+  }
+
+  get size() {
+    return easeOut(this.growth);
+  }
+
+  get reach() {
+    return lerp(...BLACKHOLE.reach, this.size);
   }
 
   get horizon() {
@@ -31,12 +57,30 @@ export class BlackHole extends Field {
     return this.holding ? { x: this.x, y: this.y, radius: this.horizon, charge: lerp(...BLACKHOLE.tension, this.size) } : null;
   }
 
-  begin() {
+  windUp() {
+    this.holding = true;
+    this.growth = 0;
+    this.x = this.aimX;
+    this.y = this.aimY;
     this.feeds.reset();
   }
 
-  end() {
+  release() {
+    if (!this.holding) return;
+    this.holding = false;
+    this.flares.push({ x: this.x, y: this.y, radius: this.reach, age: 0 });
     this.motes = [];
+    this.onCollapse(this.blow());
+  }
+
+  cancel() {
+    this.holding = false;
+    this.motes = [];
+  }
+
+  stow() {
+    super.stow();
+    this.flares = [];
   }
 
   blow() {
@@ -52,7 +96,16 @@ export class BlackHole extends Field {
     };
   }
 
-  tick(dt) {
+  update(dt) {
+    this.time += dt;
+    this.flares = this.flares.filter((flare) => (flare.age += dt) < BLACKHOLE.flareSeconds);
+    if (!this.holding) return;
+    this.growth = Math.min(1, this.growth + dt / BLACKHOLE.growSeconds);
+    const follow = Math.min(1, BLACKHOLE.follow * dt);
+    this.x += (this.aimX - this.x) * follow;
+    this.y += (this.aimY - this.y) * follow;
+    this.onSweep((x, y) => this.thrust(x, y, dt));
+    if (this.hums.tick(dt)) this.onHum(BLACKHOLE.humSeconds);
     this.gather(dt);
     if (this.feeds.tick(dt)) this.feeding = this.onFeed({ x: this.x, y: this.y, radius: this.horizon, first: !this.feeding });
   }

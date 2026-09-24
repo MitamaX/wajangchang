@@ -1,7 +1,7 @@
-import { ACID, BOOMERANG, CELL_METERS, CLAW, COMPLETION, CUTTER, DRILL, DUST, FIST, FRAGMENTS, FREEZE, GRAB, GRAVITY, IMPACT, KATANA, LAVA, LIGHTNING, MICROWAVE, MOSAIC, ORBITAL, PRESS, PUMP, QUAKE, SAW, SHOCKWAVE, SHRINK, SONIC, SPECIMEN, TERMITE, TESLA, TSUNAMI, VINE } from '../config.js';
+import { BALL, CELL_METERS, COMPLETION, CUTTER, FIST, FRAGMENTS, GRAVITY, IMPACT, KATANA, LAVA, LIGHTNING, PRESS, SAW, SHOCKWAVE, SPECIMEN } from '../config.js';
 import { wholePercent } from '../core/format.js';
-import { TAU, clamp, insidePolygon, lerp, normalize, polar, randomBetween, sum, wrap } from '../core/math.js';
-import { Fragment, cellFromWorld, cellMapper, velocityAt } from '../destruction/Fragment.js';
+import { TAU, clamp, insidePolygon, lerp, normalize, randomBetween, sum } from '../core/math.js';
+import { Fragment, cellMapper } from '../destruction/Fragment.js';
 import { FragmentBuilder } from '../destruction/FragmentBuilder.js';
 import { FractureModel } from '../destruction/FractureModel.js';
 import { squeeze, squeezedBounds } from '../destruction/squeeze.js';
@@ -19,15 +19,9 @@ const RANDOM_TARGET_TRIES = 60;
 const SHOCK_SPIN = 4;
 const BLAST_DIP = 0.3;
 const BLAST_LIFT = 0.7;
-const RAY_STEP = 0.8;
 const SWALLOW_REACH = 1.5;
-const MUZZLE_SMOKE = 3;
-const SONIC_GLINT = 'rgba(210,235,255,1)';
-const SHRINK_GLINT = 'rgba(225,180,255,1)';
-const ACID_STAIN = Object.freeze({ ink: ACID.stain, alpha: ACID.corrosion, spread: 1.4 });
 const CRUMB_STRIDE = 4;
 const CRUMB_REACH = 0.012;
-const BLOCK_REACH = Math.SQRT1_2;
 
 function distanceToSegment(px, py, ax, ay, bx, by) {
   const dx = bx - ax;
@@ -35,12 +29,6 @@ function distanceToSegment(px, py, ax, ay, bx, by) {
   const t = clamp(((px - ax) * dx + (py - ay) * dy) / (dx * dx + dy * dy || 1), 0, 1);
   return Math.hypot(px - (ax + dx * t), py - (ay + dy * t));
 }
-
-const markOf = (fragment, line) => ({
-  id: fragment.id,
-  from: fragment.toMaterial(line.ax, line.ay),
-  to: fragment.toMaterial(line.bx, line.by),
-});
 
 const shockOf = (force, contact) => Object.fromEntries(
   Object.entries(IMPACT).map(([key, [tap, full]]) => [key, lerp(contact ? tap : 0, full, force)]),
@@ -51,20 +39,6 @@ const heftOf = (body, minimum) => clamp(SHOCKWAVE.referenceMass / body.mass(), m
 function nudge(body, dx, dy) {
   const velocity = body.linvel();
   body.setLinvel({ x: velocity.x + dx, y: velocity.y + dy }, true);
-}
-
-function seamsOf(blocks, size) {
-  const taken = new Set(blocks.map(([left, top]) => `${left},${top}`));
-  return blocks.flatMap(([left, top]) => {
-    const right = left + size;
-    const bottom = top + size;
-    return [
-      left, top, right, top,
-      left, top, left, bottom,
-      ...(taken.has(`${right},${top}`) ? [] : [right, top, right, bottom]),
-      ...(taken.has(`${left},${bottom}`) ? [] : [left, bottom, right, bottom]),
-    ];
-  });
 }
 
 export class Session {
@@ -93,7 +67,6 @@ export class Session {
     this.shock = null;
     this.stall = 0;
     this.frozen = false;
-    this.prize = null;
     this.spawn();
     this.baseline = this.concentration();
     this.destruction = 0;
@@ -350,12 +323,8 @@ export class Session {
     return { x: fragment.originX + Math.floor(cellX) + 0.5, y: fragment.originY + Math.floor(cellY) + 0.5 };
   }
 
-  holder(anchor) {
-    return this.fragments.find((candidate) => candidate.grid.isSolidAt(anchor.x - candidate.originX, anchor.y - candidate.originY)) ?? null;
-  }
-
   hold(anchor) {
-    const fragment = this.holder(anchor);
+    const fragment = this.fragments.find((candidate) => candidate.grid.isSolidAt(anchor.x - candidate.originX, anchor.y - candidate.originY));
     if (!fragment) return null;
     const [x, y] = fragment.toWorld(anchor.x - fragment.originX, anchor.y - fragment.originY);
     return { x, y, angle: fragment.body.rotation() };
@@ -420,18 +389,11 @@ export class Session {
   }
 
   marksAlong(line) {
-    return this.fragmentsAlong(line).map((fragment) => markOf(fragment, line));
-  }
-
-  slice(line, first) {
-    const hits = this.hitsAlong(line.ax, line.ay, line.bx, line.by);
-    if (!hits.length) return false;
-    this.cut(hits.map(({ fragment }) => markOf(fragment, line)));
-    if (!first) return true;
-    this.engage(true);
-    this.shock = BOOMERANG.shock;
-    this.sound.cue('slice');
-    return true;
+    return this.fragmentsAlong(line).map((fragment) => ({
+      id: fragment.id,
+      from: fragment.toMaterial(line.ax, line.ay),
+      to: fragment.toMaterial(line.bx, line.by),
+    }));
   }
 
   sever(marks) {
@@ -482,13 +444,13 @@ export class Session {
     }
   }
 
-  part(pieces, { ax, ay, bx, by }, { part, lift, spin } = KATANA) {
+  part(pieces, { ax, ay, bx, by }) {
     const [normalX, normalY] = normalize(ay - by, bx - ax);
     pieces.forEach(({ body }) => {
       const center = body.worldCom();
       const side = Math.sign((center.x - ax) * normalX + (center.y - ay) * normalY) || 1;
-      nudge(body, normalX * side * part, normalY * side * part - lift);
-      body.setAngvel(body.angvel() + side * randomBetween(0, spin), true);
+      nudge(body, normalX * side * KATANA.part, normalY * side * KATANA.part - KATANA.lift);
+      body.setAngvel(body.angvel() + side * randomBetween(0, KATANA.spin), true);
     });
   }
 
@@ -577,18 +539,15 @@ export class Session {
     const across = clamp(1 / along, 1, PRESS.spread / fragment.spread);
     fragment.spread *= across;
     const before = fragment.cells;
-    this.deform(fragment, squeeze(pivot, fragment.toLocalDirection(0, 1), along, across));
-    const cracks = this.pressCracks(fragment, stroke);
-    if (fragment.cells < before) this.squirt(fragment, stroke);
-    this.apply(fragment, cracks, this.squeezeImpact(stroke));
-    return true;
-  }
-
-  deform(fragment, shape) {
+    const shape = squeeze(pivot, fragment.toLocalDirection(0, 1), along, across);
     const bounds = squeezedBounds(shape, fragment.grid.width, fragment.grid.height);
     const grid = fragment.grid.resampled(shape.backward, bounds);
     fragment.reshape(grid, fragment.skin.resampled(shape.matrix, bounds, grid), bounds.left, bounds.top);
     fragment.reshaped = true;
+    const cracks = this.pressCracks(fragment, stroke);
+    if (fragment.cells < before) this.squirt(fragment, stroke);
+    this.apply(fragment, cracks, this.squeezeImpact(stroke));
+    return true;
   }
 
   flatten(fragment, stroke) {
@@ -626,84 +585,37 @@ export class Session {
     return { x, y: bottom, burst: PRESS.burst, strength, aim: (center) => normalize(Math.sign(center.x - x) || 1, -PRESS.squeeze) };
   }
 
-  sear({ x, y, radius, first }, profile) {
-    const reach = radius / CELL_METERS + this.material.heat.melt * profile.melt;
+  sear({ x, y, radius, first }) {
+    const reach = radius / CELL_METERS + this.material.heat.melt;
     const touched = this.touching(x, y, reach * CELL_METERS);
     if (!touched.length) return false;
     this.engage(first);
     touched.forEach(({ fragment, contact }) => {
-      if (fragment.body) this.melt(fragment, contact, { x, y, reach }, profile);
+      if (fragment.body) this.melt(fragment, contact, { x, y, reach });
     });
     return true;
   }
 
-  melt(fragment, contact, { x, y, reach }, profile) {
+  melt(fragment, contact, { x, y, reach }) {
     const { heat } = this.material;
     const [cellX, cellY] = fragment.toCell(x, y);
-    fragment.skin.scorch(cellX, cellY, reach * profile.charReach, heat.char);
+    fragment.skin.scorch(cellX, cellY, reach * BALL.charReach, heat.char);
     const molten = this.fracture.carve(fragment.grid, { x: cellX, y: cellY, radius: reach });
     fragment.reshaped = fragment.reshaped || molten.changed;
     this.fallout.melt(contact.x, contact.y, molten.removed.length, heat.ember);
-    this.fallout.smolder(contact.x, contact.y, profile.smoke);
+    this.fallout.smolder(contact.x, contact.y, BALL.smoke);
     const [normalX, normalY] = normalize(contact.x - x, contact.y - y);
-    const cooled = this.clock - fragment.lastImpact >= profile.crackSeconds;
+    const cooled = this.clock - fragment.lastImpact >= BALL.crackSeconds;
     const cracks = cooled ? [this.hitFragment(fragment, { ...contact, normalX, normalY, strength: heat.strength }, 'edge')] : [];
     this.apply(fragment, cracks, { x: contact.x, y: contact.y, burst: 0, strength: heat.strength });
   }
 
-  pepper(rounds) {
-    rounds.forEach((round) => {
-      if (!this.impactArea(round)) this.fallout.puff(round.x, round.y);
-      this.blast(round);
-    });
-    const [{ shock, cue }] = rounds;
+  pepper(round) {
+    if (!this.impactArea(round)) this.fallout.puff(round.x, round.y);
+    this.blast(round);
     this.lastStrike = this.clock;
-    this.shock = shock;
-    this.sound.cue(cue);
-  }
-
-  bore(bit) {
-    const bitten = this.touching(bit.x, bit.y, bit.radius);
-    if (!bitten.length) return false;
-    this.engage(bit.first);
-    bitten.forEach(({ fragment, contact }) => {
-      if (fragment.body) this.drillInto(fragment, contact, bit);
-    });
-    this.sound.cue('bore', this.material.key);
-    this.shock = DRILL.shock;
-    return true;
-  }
-
-  drillInto(fragment, contact, { x, y, radius, crack, pressure }) {
-    const [cellX, cellY] = fragment.toCell(x, y);
-    const hole = this.fracture.carve(fragment.grid, { x: cellX, y: cellY, radius: radius / CELL_METERS });
-    const [normalX, normalY] = polar(randomBetween(0, TAU), 1);
-    const strength = lerp(...DRILL.crack, pressure);
-    const cracks = crack ? [this.hitFragment(fragment, { ...contact, normalX, normalY, strength }, 'edge')] : [];
-    this.fallout.impact(contact.x, contact.y, strength, this.paletteOf(fragment, null), DRILL.spray, -Math.PI / 2);
-    this.apply(fragment, [hole, ...cracks], { x, y, burst: DRILL.burst * pressure, strength });
-  }
-
-  raycast(ax, ay, bx, by) {
-    return this.hitsAlong(ax, ay, bx, by).reduce((first, hit) => (!first || hit.share < first.share ? hit : first), null);
-  }
-
-  hitsAlong(ax, ay, bx, by) {
-    return this.fragmentsAlong({ ax, ay, bx, by })
-      .map((fragment) => this.firstSolid(fragment, ax, ay, bx, by))
-      .filter(Boolean);
-  }
-
-  firstSolid(fragment, ax, ay, bx, by) {
-    const pose = fragment.pose();
-    const [fromX, fromY] = cellFromWorld(pose, ax, ay);
-    const [toX, toY] = cellFromWorld(pose, bx, by);
-    const steps = Math.max(1, Math.ceil(Math.hypot(toX - fromX, toY - fromY) / RAY_STEP));
-    for (let step = 0; step <= steps; step++) {
-      const share = step / steps;
-      if (fragment.grid.isSolidAt(lerp(fromX, toX, share), lerp(fromY, toY, share))) return { fragment, share, x: lerp(ax, bx, share), y: lerp(ay, by, share) };
-    }
-    return null;
+    this.shock = round.shock;
+    this.sound.cue(round.cue);
   }
 
   char(x, y, radius, strength) {
@@ -729,219 +641,23 @@ export class Session {
     this.strike(blow);
   }
 
-  chop({ x, y, dirX, dirY }, blade) {
-    const contact = this.contactAt(x, y, blade.reach);
-    this.shock = blade.shock;
-    if (!contact) {
-      this.sound.cue('thud');
-      return;
-    }
-    this.engage(true);
-    const { fragment, point } = contact;
-    const { strength, size, depth, cue = 'chop' } = blade;
-    const outcome = this.hitFragment(fragment, { ...point, normalX: dirX, normalY: dirY, strength }, 'edge');
-    this.fallout.impact(point.x, point.y, strength, this.paletteOf(fragment, outcome.point), 1, Math.atan2(-dirY, -dirX));
-    this.apply(fragment, [outcome], { x: point.x, y: point.y, burst: 0, strength });
-    this.cut(this.marksAlong({ ax: x - dirX * size, ay: y - dirY * size, bx: x + dirX * depth, by: y + dirY * depth }));
-    this.sound.cue(cue, this.material.key);
-  }
-
-  erode({ x, y, radius, first }, stain = null) {
+  devour({ x, y, radius, first }) {
+    this.debris.swallow(x, y, radius * SWALLOW_REACH);
     const touched = this.touching(x, y, radius);
-    if (!touched.length) return touched;
+    if (!touched.length) return false;
     this.engage(first);
     const reach = radius / CELL_METERS;
     touched.forEach(({ fragment }) => {
       if (!fragment.body) return;
       const [cellX, cellY] = fragment.toCell(x, y);
-      if (stain) fragment.skin.tint(cellX, cellY, reach * stain.spread, stain.ink, stain.alpha);
       this.apply(fragment, [this.fracture.carve(fragment.grid, { x: cellX, y: cellY, radius: reach })], { x, y, burst: 0, strength: 0 });
     });
-    return touched;
-  }
-
-  devour(maw) {
-    this.debris.swallow(maw.x, maw.y, maw.radius * SWALLOW_REACH);
-    return this.erode(maw).length > 0;
-  }
-
-  dissolve(drop) {
-    const eaten = this.erode(drop, ACID_STAIN).length > 0;
-    if (eaten) this.fallout.fume(drop.x, drop.y, ACID.fumes);
-    return eaten;
-  }
-
-  nibble(bite) {
-    const eaten = this.erode(bite);
-    eaten.forEach(({ fragment, contact }) => this.fallout.impact(contact.x, contact.y, 0.4, this.paletteOf(fragment, null), TERMITE.crumbs));
-    return eaten.length > 0;
-  }
-
-  chill({ x, y, radius, first, cold }) {
-    this.fallout.chill(x, y, FREEZE.mist);
-    const touched = this.touching(x, y, radius);
-    if (!touched.length) return false;
-    this.engage(first);
-    const reach = radius / CELL_METERS;
-    touched.forEach(({ fragment, contact }) => {
-      if (!fragment.body) return;
-      const [cellX, cellY] = fragment.toCell(x, y);
-      fragment.grid.addDamage(cellX, cellY, reach, FREEZE.brittle);
-      fragment.skin.tint(cellX, cellY, reach, FREEZE.ice, FREEZE.frost);
-      if (Math.random() >= FREEZE.crackChance * cold) return;
-      const [normalX, normalY] = polar(randomBetween(0, TAU), 1);
-      this.apply(fragment, [this.hitFragment(fragment, { ...contact, normalX, normalY, strength: FREEZE.crack }, 'edge')], { x, y, burst: 0, strength: 0 });
-    });
     return true;
-  }
-
-  zap({ x, y, normalX, normalY, first }) {
-    const contact = this.contactAt(x, y, TESLA.char);
-    if (!contact) return;
-    this.engage(first);
-    const { fragment, point } = contact;
-    const { body } = fragment;
-    fragment.skin.scorch(...fragment.toCell(point.x, point.y), TESLA.char / CELL_METERS, this.material.heat.char);
-    const outcome = this.hitFragment(fragment, { ...point, normalX, normalY, strength: TESLA.strength }, 'edge');
-    this.fallout.smolder(point.x, point.y, TESLA.sparks);
-    if (!this.frozen) nudge(body, normalX * TESLA.jolt * heftOf(body, 0), normalY * TESLA.jolt * heftOf(body, 0));
-    this.apply(fragment, [outcome], { x: point.x, y: point.y, burst: 0, strength: TESLA.strength });
-  }
-
-  vaporize({ x, top, bottom, first }) {
-    const { halfWidth } = ORBITAL;
-    const band = this.fragments.filter((fragment) => {
-      const center = fragment.body.worldCom();
-      return Math.abs(center.x - x) <= halfWidth + fragment.extent && center.y + fragment.extent >= top && center.y - fragment.extent <= bottom;
-    });
-    const burnt = band.filter((fragment) => this.incise(fragment, x, top, bottom));
-    if (burnt.length) this.engage(first);
-    return burnt.length > 0;
-  }
-
-  incise(fragment, x, top, bottom) {
-    const { halfWidth } = ORBITAL;
-    const toWorld = cellMapper(fragment.pose());
-    const molten = this.fracture.excise(fragment.grid, (cellX, cellY) => {
-      const [worldX, worldY] = toWorld(cellX, cellY);
-      return Math.abs(worldX - x) <= halfWidth && worldY >= top && worldY <= bottom;
-    });
-    if (!molten.changed) return false;
-    const middle = (top + bottom) / 2;
-    [-1, 1].forEach((side) => this.char(x + side * halfWidth, middle, halfWidth, ORBITAL.char));
-    this.fallout.blaze(x, bottom, ORBITAL.embers, this.material.heat.ember);
-    this.apply(fragment, [molten], { x, y: bottom, burst: 0, strength: 0 });
-    return true;
-  }
-
-  beam(x) {
-    this.shock = ORBITAL.shock;
-    this.sound.cue('orbital');
-    this.fallout.puff(x, 0);
-    this.blast({ x, y: 0, radius: ORBITAL.halfWidth, blast: ORBITAL.blast });
-  }
-
-  pierce(line, beam) {
-    const { ax, ay, bx, by } = line;
-    const heading = normalize(bx - ax, by - ay);
-    const hits = this.hitsAlong(ax, ay, bx, by);
-    hits.forEach((hit) => this.tunnel(hit, line, heading, beam));
-    if (hits.length) this.engage(true);
-    this.shock = beam.shock;
-    this.sound.cue(beam.cue, beam.force);
-  }
-
-  tunnel({ fragment, x, y }, line, [dirX, dirY], { strength, radius, spray, push, heft: minimumHeft, burst }) {
-    if (!fragment.body) return;
-    const crack = this.hitFragment(fragment, { x, y, normalX: dirX, normalY: dirY, strength }, 'edge');
-    const toWorld = cellMapper(fragment.pose());
-    const bore = this.fracture.excise(fragment.grid, (cellX, cellY) => {
-      const [worldX, worldY] = toWorld(cellX, cellY);
-      return distanceToSegment(worldX, worldY, line.ax, line.ay, line.bx, line.by) <= radius;
-    });
-    this.fallout.impact(x, y, strength, this.paletteOf(fragment, crack.point), spray, Math.atan2(-dirY, -dirX));
-    if (!this.frozen) {
-      const heft = heftOf(fragment.body, minimumHeft);
-      nudge(fragment.body, dirX * push * heft, dirY * push * heft);
-    }
-    this.apply(fragment, [crack, bore], { x, y, burst, strength, aim: () => [dirX, dirY] });
-  }
-
-  quake(power) {
-    this.shock = { trauma: lerp(...QUAKE.trauma, power), kick: 0, punch: 0, flash: 0 };
-    for (let i = 0; i < QUAKE.puffs; i++) this.fallout.puff(randomBetween(-this.room.halfWidth, this.room.halfWidth), 0);
-    this.sweep((x, y) => {
-      if (y < -QUAKE.reach) return null;
-      const kick = QUAKE.kick * power * randomBetween(0.4, 1);
-      return [randomBetween(-1, 1) * kick * QUAKE.sideways, -kick];
-    }, QUAKE.heft, QUAKE.spin);
-    [...this.fragments]
-      .filter((fragment) => fragment.cells >= FRAGMENTS.minImpactCells)
-      .sort((a, b) => b.cells - a.cells)
-      .slice(0, QUAKE.tremors)
-      .forEach((fragment) => this.tremor(fragment, power));
-  }
-
-  tremor(fragment, power) {
-    if (!fragment.body) return;
-    const center = fragment.body.worldCom();
-    const point = fragment.solidNear(center.x + randomBetween(-0.5, 0.5) * fragment.extent, 0, QUAKE.grip / CELL_METERS);
-    if (!point) return;
-    const strength = QUAKE.crack * power * randomBetween(0.5, 1);
-    const outcome = this.hitFragment(fragment, { ...point, normalX: 0, normalY: -1, strength }, 'edge');
-    this.fallout.impact(point.x, point.y, strength, this.paletteOf(fragment, outcome.point), QUAKE.spray, -Math.PI / 2);
-    this.apply(fragment, [outcome], { x: point.x, y: point.y, burst: 0, strength });
-  }
-
-  seize(x, y, reach = GRAB.reach, cue = 'seize') {
-    const anchor = this.grip(x, y, reach);
-    if (!anchor) return null;
-    this.engage(true);
-    this.sound.cue(cue);
-    return anchor;
-  }
-
-  muzzle(x, y, cue) {
-    this.fallout.smolder(x, y, MUZZLE_SMOKE);
-    this.sound.cue(cue);
-  }
-
-  slam(speed) {
-    this.sweep(() => [0, speed], 1);
-    this.sound.cue('slam');
-  }
-
-  tug(anchor, x, y, dt) {
-    const fragment = this.holder(anchor);
-    if (!fragment) return null;
-    const pose = fragment.pose();
-    const [gripX, gripY] = cellMapper(pose)(anchor.x - fragment.originX, anchor.y - fragment.originY);
-    if (this.frozen) return { x: gripX, y: gripY };
-    const [pointX, pointY] = velocityAt(pose, gripX, gripY);
-    const offset = Math.hypot(x - gripX, y - gripY);
-    const speed = Math.min(GRAB.maxSpeed, offset * GRAB.stiffness) / (offset || 1);
-    const share = Math.min(1, GRAB.gain * dt);
-    const { body } = fragment;
-    const mass = body.mass();
-    const impulseX = ((x - gripX) * speed - pointX) * share * mass;
-    const impulseY = (((y - gripY) * speed - pointY) * share - GRAVITY * dt) * mass;
-    body.applyImpulseAtPoint({ x: impulseX, y: impulseY }, { x: gripX, y: gripY }, true);
-    body.setAngvel(body.angvel() * Math.max(0, 1 - GRAB.spinDamping * dt), true);
-    return { x: gripX, y: gripY };
   }
 
   land(x, shock) {
-    this.sound.cue('clank');
-    this.thump(x, shock);
-  }
-
-  trample(blow, shock) {
-    this.strike(blow);
-    this.thump(blow.x, shock);
-  }
-
-  thump(x, shock) {
     this.shock = shock;
+    this.sound.cue('clank');
     this.fallout.puff(x, 0);
     this.shockwave(x, 1);
   }
@@ -955,10 +671,7 @@ export class Session {
 
   randomTarget() {
     const fragment = this.fragments.reduce((largest, candidate) => (!largest || candidate.cells > largest.cells ? candidate : largest), null);
-    return fragment ? this.spot(fragment) : null;
-  }
-
-  spot(fragment) {
+    if (!fragment) return null;
     const { grid } = fragment;
     for (let attempt = 0; attempt < RANDOM_TARGET_TRIES; attempt++) {
       const cellX = randomBetween(0, grid.width);
@@ -966,72 +679,6 @@ export class Session {
       if (grid.isSolidAt(cellX, cellY)) return fragment.toWorld(cellX, cellY);
     }
     return null;
-  }
-
-  weighedPick() {
-    let roll = Math.random() * sum(this.fragments.map((fragment) => fragment.cells));
-    return this.fragments.find((fragment) => (roll -= fragment.cells) <= 0) ?? null;
-  }
-
-  shiver(fragment, strength, fatigue) {
-    const point = fragment.body && this.spot(fragment);
-    if (!point) return null;
-    const { grid } = fragment;
-    grid.addDamage(grid.width / 2, grid.height / 2, Math.hypot(grid.width, grid.height) / 2, fatigue);
-    const [x, y] = point;
-    const [normalX, normalY] = polar(randomBetween(0, TAU), 1);
-    this.apply(fragment, [this.hitFragment(fragment, { x, y, normalX, normalY, strength }, 'edge')], { x, y, burst: 0, strength: 0 });
-    return { x, y };
-  }
-
-  resonate({ x, y, power, first }) {
-    const strength = SONIC.strength * power * this.material.resonance;
-    const ringing = this.fragmentsWithin({ x, y, radius: SONIC.reach })
-      .sort((a, b) => b.cells - a.cells)
-      .slice(0, SONIC.hits)
-      .map((fragment) => this.shiver(fragment, strength, SONIC.fatigue))
-      .filter(Boolean);
-    ringing.forEach((point) => this.fallout.impact(point.x, point.y, strength, () => SONIC_GLINT, SONIC.glint));
-    this.sweep((px, py) => (Math.hypot(px - x, py - y) > SONIC.reach ? null : polar(randomBetween(0, TAU), SONIC.rattle * power)), SONIC.heft);
-    if (ringing.length) this.engage(first);
-    return ringing.length > 0;
-  }
-
-  irradiate({ power, first }) {
-    const { radiation, heat } = this.material;
-    const strength = MICROWAVE.strength * power * radiation.strength;
-    const sparks = Array.from({ length: MICROWAVE.spots }, () => this.weighedPick())
-      .filter(Boolean)
-      .map((fragment) => {
-        const point = this.shiver(fragment, strength, MICROWAVE.fatigue);
-        if (point) this.char(point.x, point.y, MICROWAVE.char, heat.char);
-        return point;
-      })
-      .filter(Boolean);
-    if (sparks.length) this.engage(first);
-    if (!radiation.arcing) return [];
-    sparks.forEach((point) => this.fallout.smolder(point.x, point.y, MICROWAVE.arcs));
-    return sparks;
-  }
-
-  batter({ from, to, direction, height }) {
-    const [left, right] = [Math.min(from, to), Math.max(from, to)];
-    this.fragments
-      .filter((fragment) => {
-        const center = fragment.body.worldCom();
-        return center.x >= left && center.x < right && center.y > -height;
-      })
-      .forEach((fragment) => this.drench(fragment, direction));
-  }
-
-  drench(fragment, direction) {
-    const center = fragment.body.worldCom();
-    const hit = this.firstSolid(fragment, center.x - direction * fragment.extent, center.y, center.x, center.y);
-    if (!hit) return;
-    const { strength } = TSUNAMI;
-    const outcome = this.hitFragment(fragment, { x: hit.x, y: hit.y, normalX: direction, normalY: 0, strength }, 'edge');
-    this.fallout.splash(hit.x, hit.y, TSUNAMI.spray);
-    this.apply(fragment, [outcome], { x: hit.x, y: hit.y, burst: 0, strength });
   }
 
   punch(blow, [dirX, dirY]) {
@@ -1042,21 +689,6 @@ export class Session {
       const share = 1 - distance / FIST.reach;
       return [dirX * FIST.shove * share, dirY * FIST.shove * share - FIST.lift * share];
     }, FIST.heft);
-  }
-
-  inflate(anchor) {
-    const fragment = this.holder(anchor);
-    if (!fragment) return false;
-    const [cellX, cellY] = fragment.fromMaterial([anchor.x, anchor.y]);
-    const radius = PUMP.radius / CELL_METERS;
-    fragment.grid.pinch(cellX, cellY, radius, -PUMP.swell);
-    fragment.skin.pinch(cellX, cellY, radius, -PUMP.swell);
-    fragment.grid.addDamage(cellX, cellY, radius, PUMP.strain);
-    fragment.reshaped = true;
-    this.shock = PUMP.shock;
-    const [x, y] = fragment.toWorld(cellX, cellY);
-    this.split(fragment, { x, y, burst: 0, strength: 0 });
-    return true;
   }
 
   stamp(outline) {
@@ -1092,34 +724,6 @@ export class Session {
     body.setAngvel(body.angvel() + randomBetween(-CUTTER.spin, CUTTER.spin), true);
   }
 
-  grasp(jaws) {
-    const anchor = this.grip(jaws.x, jaws.y, CLAW.reach);
-    this.squeeze(jaws, CLAW.squeeze);
-    this.shock = CLAW.shock;
-    this.sound.cue('clamp');
-    if (anchor) this.engage(true);
-    return anchor;
-  }
-
-  squeeze({ x, y, span }, strength = CLAW.crush) {
-    [-1, 1].forEach((side) => {
-      const contact = this.contactAt(x + side * span, y, CLAW.reach);
-      if (!contact) return;
-      const { fragment, point } = contact;
-      const outcome = this.hitFragment(fragment, { ...point, normalX: -side, normalY: 0, strength }, 'edge');
-      this.fallout.impact(point.x, point.y, strength, this.paletteOf(fragment, outcome.point), 1, side < 0 ? Math.PI : 0);
-      this.apply(fragment, [outcome], { x: point.x, y: point.y, burst: 0, strength });
-    });
-  }
-
-  hurl(anchor) {
-    this.sound.cue('jingle');
-    const fragment = this.holder(anchor);
-    if (!fragment || this.frozen) return;
-    nudge(fragment.body, 0, CLAW.hurl);
-    this.prize = { fragment, until: this.clock + CLAW.smashSeconds };
-  }
-
   immerse(surface) {
     return [...this.fragments].filter((fragment) => fragment.body && this.scald(fragment, surface)).length > 0;
   }
@@ -1149,94 +753,6 @@ export class Session {
     }
     this.split(fragment, { x: center.x, y: bottom, burst: 0, strength: 0 });
     return true;
-  }
-
-  censor({ x, y, half }) {
-    const region = (pointX, pointY) => Math.abs(pointX - x) <= half && Math.abs(pointY - y) <= half;
-    const tiled = this.fragmentsWithin({ x, y, radius: half * Math.SQRT2 }).filter((fragment) => fragment.body && this.tile(fragment, region, { x, y }));
-    this.shock = MOSAIC.shock;
-    this.sound.cue('mosaic');
-    if (tiled.length) this.engage(true);
-  }
-
-  tile(fragment, region, impact) {
-    const blocks = this.tessellate(fragment, region);
-    if (!blocks.length) return false;
-    fragment.skin.pixelate(blocks, MOSAIC.block);
-    this.score(fragment, seamsOf(blocks, MOSAIC.block));
-    this.split(fragment, { ...impact, burst: MOSAIC.burst, strength: MOSAIC.strength });
-    return true;
-  }
-
-  tessellate(fragment, region) {
-    const { block } = MOSAIC;
-    const { grid } = fragment;
-    const toWorld = cellMapper(fragment.pose());
-    const blocks = [];
-    for (let top = -wrap(fragment.originY, block); top < grid.height; top += block) {
-      for (let left = -wrap(fragment.originX, block); left < grid.width; left += block) {
-        const middleX = left + block / 2;
-        const middleY = top + block / 2;
-        if (region(...toWorld(middleX, middleY)) && grid.nearestSolid(middleX, middleY, block * BLOCK_REACH)) blocks.push([left, top]);
-      }
-    }
-    return blocks;
-  }
-
-  shrink({ x, y, first }) {
-    const contact = this.contactAt(x, y, SHRINK.radius);
-    if (!contact) return false;
-    this.engage(first);
-    const { fragment, point } = contact;
-    this.fallout.twinkle(point.x, point.y, SHRINK.glint, SHRINK_GLINT);
-    this.deform(fragment, squeeze([fragment.anchorX, fragment.anchorY], [1, 0], SHRINK.factor, SHRINK.factor));
-    this.split(fragment, { x, y, burst: 0, strength: 0 });
-    return true;
-  }
-
-  creep({ from, to, leaf, rooted }) {
-    const fragment = this.holder(from);
-    if (!fragment) return null;
-    const { grid, skin } = fragment;
-    const [ax, ay] = fragment.fromMaterial([from.x, from.y]);
-    const [bx, by] = fragment.fromMaterial([to.x, to.y]);
-    const joined = grid.cutSegment(ax, ay, bx, by, rooted);
-    const escaped = !grid.isSolidAt(bx, by);
-    grid.addDamage(bx, by, VINE.strain.radius, VINE.strain.amount);
-    skin.drawCracks([ax, ay, bx, by], VINE.look);
-    if (leaf) skin.leaf(bx, by, Math.atan2(by - ay, bx - ax) + leaf * VINE.leafAngle, VINE.leafSize);
-    const ended = joined || escaped;
-    if (ended) this.pry(fragment, [ax, ay, bx, by]);
-    return { ended };
-  }
-
-  pry(fragment, [ax, ay, bx, by]) {
-    const [fromX, fromY] = fragment.toWorld(ax, ay);
-    const [toX, toY] = fragment.toWorld(bx, by);
-    const pieces = this.split(fragment, { x: toX, y: toY, burst: 0, strength: 0 });
-    if (pieces.length < 2) return;
-    this.part(pieces, { ax: fromX, ay: fromY, bx: toX, by: toY }, VINE.pry);
-    this.sound.cue('creak');
-  }
-
-  disperse({ x, y, radius }) {
-    const reach = radius / CELL_METERS;
-    [...this.fragments].forEach((fragment) => {
-      if (fragment.body) this.atomize(fragment, [x, y], reach);
-    });
-  }
-
-  atomize(fragment, spot, reach) {
-    const [cellX, cellY] = fragment.fromMaterial(spot);
-    const { grid, skin } = fragment;
-    if (cellX < -reach || cellY < -reach || cellX > grid.width + reach || cellY > grid.height + reach) return;
-    const { removed } = this.fracture.carve(grid, { x: cellX, y: cellY, radius: reach });
-    if (!removed.length) return;
-    skin.scorch(cellX, cellY, reach * DUST.ashReach, DUST.ash);
-    this.fallout.disperse(fragment, removed);
-    fragment.reshaped = true;
-    const [x, y] = fragment.toWorld(cellX, cellY);
-    this.split(fragment, { x, y, burst: 0, strength: 0 });
   }
 
   pound({ x, strength }) {
@@ -1354,27 +870,11 @@ export class Session {
     impacts.forEach(({ speed }) => {
       if (speed > FRAGMENTS.soundSpeed) this.sound.collide(this.material.key, speed);
     });
-    const landing = impacts.find((impact) => this.lands(impact));
-    if (landing) this.smash(landing);
     impacts
-      .filter((impact) => impact !== landing && this.breaksOnImpact(impact.fragment, impact.speed))
+      .filter(({ fragment, speed }) => this.breaksOnImpact(fragment, speed))
       .sort((a, b) => b.speed - a.speed)
       .slice(0, FRAGMENTS.impactsPerFrame)
       .forEach((impact) => this.shatterOnImpact(impact));
-  }
-
-  lands({ fragment, speed }) {
-    const { prize } = this;
-    return prize !== null && prize.fragment === fragment && this.clock <= prize.until && speed >= CLAW.impactSpeed[0];
-  }
-
-  smash({ own, other, speed }) {
-    this.prize = null;
-    const contact = this.physics.contact(own, other);
-    if (!contact) return;
-    const { impactSpeed, strength } = CLAW;
-    const force = clamp((speed - impactSpeed[0]) / (impactSpeed[1] - impactSpeed[0]), 0, 1);
-    this.strike({ ...CLAW.smash, x: contact.x, y: contact.y, strength: lerp(...strength, force), force });
   }
 
   breaksOnImpact(fragment, speed) {

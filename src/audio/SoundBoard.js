@@ -3,7 +3,7 @@ import { Synth } from './Synth.js';
 
 const COLLISION_WINDOW = 0.05;
 const COLLISIONS_PER_WINDOW = 3;
-const UNRECORDED = new Set(['hum', 'whir', 'whine']);
+const UNRECORDED = new Set(['hum', 'whir']);
 
 export class SoundBoard {
   constructor() {

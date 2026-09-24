@@ -1,3 +1,4 @@
+import { GUN } from '../config.js';
 import { radiate } from '../core/canvas.js';
 import { TAU, clamp, lerp, polar, randomBetween } from '../core/math.js';
 import { Pulse } from './Pulse.js';
@@ -10,13 +11,12 @@ const FLASH_CORE = '255,250,220';
 const FLASH_FIRE = '255,190,90';
 
 export class Gun extends Tool {
-  constructor(room, config, { onFire }) {
+  constructor(room, { onFire }) {
     super(room);
-    this.config = config;
     this.onFire = onFire;
     this.holding = false;
     this.heat = 0;
-    this.rounds = new Pulse(1 / config.rate);
+    this.rounds = new Pulse(1 / GUN.rate);
     this.flashes = [];
   }
 
@@ -25,7 +25,7 @@ export class Gun extends Tool {
   }
 
   get spread() {
-    return lerp(...this.config.spread, this.heat);
+    return lerp(...GUN.spread, this.heat);
   }
 
   windUp() {
@@ -42,11 +42,10 @@ export class Gun extends Tool {
   }
 
   update(dt) {
-    const { flashSeconds, bloomSeconds, recovery, pellets } = this.config;
-    this.flashes = this.flashes.filter((flash) => (flash.age += dt) < flashSeconds);
+    this.flashes = this.flashes.filter((flash) => (flash.age += dt) < GUN.flashSeconds);
     const firing = this.holding && this.present;
-    this.heat = clamp(this.heat + (firing ? dt / bloomSeconds : -dt * recovery), 0, 1);
-    if (firing && this.rounds.tick(dt)) this.onFire(Array.from({ length: pellets }, () => this.round()));
+    this.heat = clamp(this.heat + (firing ? dt / GUN.bloomSeconds : -dt * GUN.recovery), 0, 1);
+    if (firing && this.rounds.tick(dt)) this.onFire(this.round());
   }
 
   round() {
@@ -54,7 +53,7 @@ export class Gun extends Tool {
     const x = this.aimX + offsetX;
     const y = Math.min(0, this.aimY + offsetY);
     this.flashes.push({ x, y, age: 0, turn: randomBetween(0, TAU) });
-    return { ...this.config.round, x, y };
+    return { ...GUN.round, x, y };
   }
 
   draw(context, pixelsPerMeter) {
@@ -81,7 +80,7 @@ export class Gun extends Tool {
   }
 
   drawFlash(context, pixel, { x, y, age, turn }) {
-    const fading = 1 - age / this.config.flashSeconds;
+    const fading = 1 - age / GUN.flashSeconds;
     radiate(context, x, y, FLASH.reach * fading, [
       [0, `rgba(${FLASH_CORE},${fading})`],
       [0.4, `rgba(${FLASH_FIRE},${0.7 * fading})`],

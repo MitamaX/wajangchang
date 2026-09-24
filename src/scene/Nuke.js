@@ -1,8 +1,8 @@
 import { NUKE } from '../config.js';
-import { HAZARD, HAZARD_INK, inkOutline, traceRoundRect } from '../core/canvas.js';
+import { HAZARD, HAZARD_INK, inkOutline, paintReticle, traceRoundRect } from '../core/canvas.js';
 import { TAU, easeOut } from '../core/math.js';
-import { Launcher } from './Launcher.js';
-import { Shell } from './Shell.js';
+import { Blasts } from './Blasts.js';
+import { Tool } from './Tool.js';
 
 const SKY_GAP = 0.1;
 const SIZE = NUKE.size;
@@ -48,7 +48,7 @@ function paintCasing(context) {
   context.restore();
 }
 
-function paintBomb(context, pixel, { x, y }) {
+function paintWarhead(context, pixel, { x, y }) {
   context.save();
   context.translate(x, y);
   inkOutline(context, pixel);
@@ -96,42 +96,92 @@ function paintCloud(context, { x, y, age }) {
   paintCap(context, x, capY, MUSHROOM.cap * (0.35 + 0.65 * grow), Math.max(0, 1 - t * MUSHROOM.cool), fading);
 }
 
-export class Nuke extends Launcher {
+class Warhead {
+  constructor(x, y, targetY) {
+    this.x = x;
+    this.y = y;
+    this.vy = NUKE.drop;
+    this.targetY = targetY;
+  }
+
+  fall(dt, surface) {
+    const steps = Math.max(1, Math.ceil((this.vy * dt) / NUKE.reach));
+    const step = dt / steps;
+    for (let i = 0; i < steps; i++) {
+      this.vy += NUKE.gravity * step;
+      this.y += this.vy * step;
+      const hit = this.landing(surface);
+      if (hit) return hit;
+    }
+    return null;
+  }
+
+  landing(surface) {
+    if (this.y >= 0) return { x: this.x, y: 0 };
+    const contact = surface.contactAt(this.x, this.y, NUKE.reach);
+    if (contact) return contact.point;
+    return this.y >= this.targetY ? { x: this.x, y: this.targetY } : null;
+  }
+}
+
+export class Nuke extends Tool {
   constructor(room, surface, { onImpact, onLaunch }) {
-    super(room, surface, NUKE, onLaunch);
+    super(room);
+    this.surface = surface;
     this.onImpact = onImpact;
+    this.onLaunch = onLaunch;
+    this.warheads = [];
+    this.blasts = new Blasts(NUKE.blastSeconds);
     this.clouds = [];
   }
 
+  get spills() {
+    return false;
+  }
+
   get busy() {
-    return super.busy || this.clouds.length > 0;
+    return this.warheads.length > 0 || this.blasts.busy || this.clouds.length > 0;
   }
 
-  launch() {
-    const target = { x: this.aimX, y: this.aimY };
-    return new Shell({ x: this.aimX, y: -this.room.ceiling - SKY_GAP, vx: 0, vy: NUKE.drop, gravity: NUKE.gravity, reach: NUKE.reach, target });
+  get pending() {
+    return this.warheads.length > 0;
   }
 
-  impact(shell, { x, y }) {
+  windUp() {
+    if (this.warheads.length >= NUKE.capacity) return;
+    this.warheads.push(new Warhead(this.aimX, -this.room.ceiling - SKY_GAP, this.aimY));
+    this.onLaunch();
+  }
+
+  stow() {
+    super.stow();
+    this.warheads = [];
+  }
+
+  update(dt) {
+    this.blasts.update(dt);
+    this.warheads = this.warheads.filter((warhead) => {
+      const hit = warhead.fall(dt, this.surface);
+      if (hit) this.detonate(hit);
+      return !hit;
+    });
+    this.clouds = this.clouds.filter((cloud) => (cloud.age += dt) < NUKE.blastSeconds);
+  }
+
+  detonate({ x, y }) {
     const blow = { ...NUKE.blow, x, y };
     this.blasts.add(blow);
     this.clouds.push({ x, y, age: 0 });
     this.onImpact(blow);
   }
 
-  update(dt) {
-    super.update(dt);
-    this.clouds = this.clouds.filter((cloud) => (cloud.age += dt) < NUKE.blastSeconds);
-  }
-
   draw(context, pixelsPerMeter) {
+    const pixel = 1 / pixelsPerMeter;
     this.clouds.forEach((cloud) => paintCloud(context, cloud));
-    super.draw(context, pixelsPerMeter);
+    this.blasts.draw(context, pixel);
+    this.warheads.forEach((warhead) => paintWarhead(context, pixel, warhead));
+    if (this.present) paintReticle(context, this.aimX, this.aimY, pixel);
     this.clouds.forEach((cloud) => this.paintWhiteout(context, cloud));
-  }
-
-  paint(context, pixel, shell) {
-    paintBomb(context, pixel, shell);
   }
 
   paintWhiteout(context, { age }) {

@@ -1,6 +1,6 @@
 import { TEXELS_PER_CELL } from '../config.js';
 import { createCanvas } from '../core/canvas.js';
-import { TAU, clamp, randomBetween } from '../core/math.js';
+import { TAU, randomBetween } from '../core/math.js';
 import { Side } from './CellGrid.js';
 import { pinchScale } from './pinch.js';
 
@@ -9,11 +9,6 @@ const CHANNELS = 4;
 const FROST = '255,255,255';
 const HOLLOW = '24,22,20';
 const SOOT = '26,16,10';
-const LEAF = 'rgba(112,192,70,0.95)';
-const LEAF_EDGE = 'rgba(30,72,20,0.75)';
-const LEAF_WIDTH = 0.42;
-const LEAF_OUTLINE = 0.1;
-const LEAF_RIB = 0.8;
 
 const scratch = { canvas: null, context: null };
 
@@ -192,71 +187,12 @@ export class FragmentSkin {
     context.fillRect(x - radius, y - radius, radius * 2, radius * 2);
   }
 
-  tint(cellX, cellY, cellRadius, ink, alpha) {
-    this.paint('source-atop', (context) => this.stain(context, cellX * T, cellY * T, cellRadius * T, ink, alpha));
-  }
-
   frost(cellX, cellY, cellRadius, strength) {
-    this.tint(cellX, cellY, cellRadius, FROST, Math.min(0.75, 0.45 * strength));
+    this.paint('source-atop', (context) => this.stain(context, cellX * T, cellY * T, cellRadius * T, FROST, Math.min(0.75, 0.45 * strength)));
   }
 
   scorch(cellX, cellY, cellRadius, strength) {
-    this.tint(cellX, cellY, cellRadius, SOOT, strength);
-  }
-
-  pixelate(blocks, cells) {
-    const size = cells * T;
-    const { width, height } = this.canvas;
-    const lefts = blocks.map(([left]) => left * T);
-    const tops = blocks.map(([, top]) => top * T);
-    const x0 = clamp(Math.min(...lefts), 0, width);
-    const y0 = clamp(Math.min(...tops), 0, height);
-    const x1 = clamp(Math.max(...lefts) + size, 0, width);
-    const y1 = clamp(Math.max(...tops) + size, 0, height);
-    if (x1 <= x0 || y1 <= y0) return;
-    const { data } = this.context.getImageData(x0, y0, x1 - x0, y1 - y0);
-    const stride = x1 - x0;
-    this.paint('source-atop', (context) => {
-      blocks.forEach(([left, top]) => {
-        const fromX = clamp(left * T, x0, x1);
-        const fromY = clamp(top * T, y0, y1);
-        const toX = clamp(left * T + size, x0, x1);
-        const toY = clamp(top * T + size, y0, y1);
-        const mix = [0, 0, 0, 0];
-        for (let y = fromY; y < toY; y++) {
-          for (let x = fromX; x < toX; x++) {
-            const index = ((y - y0) * stride + x - x0) * CHANNELS;
-            const alpha = data[index + 3];
-            for (let channel = 0; channel < 3; channel++) mix[channel] += data[index + channel] * alpha;
-            mix[3] += alpha;
-          }
-        }
-        if (!mix[3]) return;
-        context.fillStyle = `rgb(${mix.slice(0, 3).map((total) => Math.round(total / mix[3])).join(',')})`;
-        context.fillRect(fromX, fromY, toX - fromX, toY - fromY);
-      });
-    });
-  }
-
-  leaf(cellX, cellY, angle, cells) {
-    const size = cells * T;
-    this.paint('source-atop', (context) => {
-      context.translate(cellX * T, cellY * T);
-      context.rotate(angle);
-      context.fillStyle = LEAF;
-      context.strokeStyle = LEAF_EDGE;
-      context.lineWidth = size * LEAF_OUTLINE;
-      context.beginPath();
-      context.moveTo(0, 0);
-      context.quadraticCurveTo(size * 0.5, -size * LEAF_WIDTH, size, 0);
-      context.quadraticCurveTo(size * 0.5, size * LEAF_WIDTH, 0, 0);
-      context.fill();
-      context.stroke();
-      context.beginPath();
-      context.moveTo(0, 0);
-      context.lineTo(size * LEAF_RIB, 0);
-      context.stroke();
-    });
+    this.paint('source-atop', (context) => this.stain(context, cellX * T, cellY * T, cellRadius * T, SOOT, strength));
   }
 
   pit(cellX, cellY, cellRadius, strength) {

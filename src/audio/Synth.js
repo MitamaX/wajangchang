@@ -128,6 +128,6 @@ export class Synth {
   }
 
   cue(start, parts, level = 1, stretch = 1) {
-    parts.forEach(({ voice, duration, gain, delay = 0, ...shape }) => this[voice](start + delay * stretch, duration * stretch, { ...shape, gain: gain * level }));
+    parts.forEach(({ voice, duration, gain, ...shape }) => this[voice](start, duration * stretch, { ...shape, gain: gain * level }));
   }
 }
