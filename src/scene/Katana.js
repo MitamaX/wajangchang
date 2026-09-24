@@ -62,6 +62,11 @@ export class Katana extends Tool {
     return this.present || this.busy;
   }
 
+  get tempo() {
+    const composing = this.drawing || (this.slashes.length > 0 && this.wait > KATANA.pause);
+    return composing ? KATANA.tempo : 1;
+  }
+
   get focus() {
     const last = this.slashes.at(-1) || this.queue.at(-1);
     return last ? { x: (last.ax + last.bx) / 2, y: (last.ay + last.by) / 2, radius: 0, charge: KATANA.tension } : null;

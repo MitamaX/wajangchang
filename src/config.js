@@ -90,6 +90,8 @@ export const SAW = Object.freeze({
 
 export const KATANA = Object.freeze({
   delay: 0.9,
+  pause: 0.35,
+  tempo: 5,
   cadence: 0.08,
   steadyCuts: 3,
   quickening: 0.97,
