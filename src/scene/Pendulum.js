@@ -2,6 +2,7 @@ import { GRAVITY, PENDULUM } from '../config.js';
 import { inkOutline, radiate, steel } from '../core/canvas.js';
 import { TAU, clamp, lerp, polar } from '../core/math.js';
 import { Layer } from '../physics/PhysicsWorld.js';
+import { Cooldown } from './Cooldown.js';
 import { Tool } from './Tool.js';
 
 const RADIUS = PENDULUM.radius;
@@ -110,8 +111,7 @@ export class Pendulum extends Tool {
     this.holding = false;
     this.grab = { angle: 0, x: 0 };
     this.body = null;
-    this.clock = 0;
-    this.lastHit = -Infinity;
+    this.gap = new Cooldown(PENDULUM.cooldown);
     this.beat = 0;
     this.trail = [];
   }
@@ -198,7 +198,7 @@ export class Pendulum extends Tool {
   }
 
   update(dt) {
-    this.clock += dt;
+    this.gap.tick(dt);
     const previous = this.angle;
     if (this.holding) this.pull(dt);
     else if (this.swinging) this.sway(dt);
@@ -231,11 +231,11 @@ export class Pendulum extends Tool {
   }
 
   strike(x, y) {
-    const { impactSpeed, strength, blow, cooldown, contact } = PENDULUM;
-    if (this.speed < impactSpeed[0] || this.clock - this.lastHit < cooldown) return;
+    const { impactSpeed, strength, blow, contact } = PENDULUM;
+    if (this.speed < impactSpeed[0] || !this.gap.ready) return;
     const hit = this.surface.contactAt(x, y, RADIUS * contact);
     if (!hit) return;
-    this.lastHit = this.clock;
+    this.gap.trigger();
     const force = clamp((this.speed - impactSpeed[0]) / (impactSpeed[1] - impactSpeed[0]), 0, 1);
     const direction = Math.sign(this.spin);
     this.onHit({

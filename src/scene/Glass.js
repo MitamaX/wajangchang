@@ -1,10 +1,11 @@
 import { radiate } from '../core/canvas.js';
-import { TAU, clamp, polar, randomBetween, randomInt } from '../core/math.js';
+import { TAU, clamp, polar, randomBetween, randomInt, rotate } from '../core/math.js';
 
 const LINES = Object.freeze({ shadow: 2.8, light: 1.1, hold: 0.55 });
 const SHADOW = 'rgba(12,16,22,0.5)';
 const LIGHT = '235,245,255';
 const HOLE = 'rgba(8,10,14,0.9)';
+const DENT = '12,16,22';
 
 function tracePolyline(context, points) {
   context.moveTo(points[0], points[1]);
@@ -31,6 +32,34 @@ function shatter({ spokes, reach, bends, jitter, rings, skip, core }) {
   return [...rays.map(({ points }) => points), ...webs];
 }
 
+function knuckles({ gap, arch, size: [width, height], scale, tilt }) {
+  const turn = randomBetween(-tilt, tilt);
+  const middle = (scale.length - 1) / 2;
+  return scale.map((share, i) => {
+    const offset = (i - middle) / middle;
+    const [x, y] = rotate((i - middle) * gap, arch * (offset * offset - 1), turn);
+    return { x, y, width: width * share, height: height * share, turn };
+  });
+}
+
+function paintKnuckles(context, pixel, prints) {
+  prints.forEach(({ x, y, width, height, turn }) => {
+    const gradient = context.createRadialGradient(x, y - height * 0.3, 0, x, y, width);
+    gradient.addColorStop(0, `rgba(${DENT},0.5)`);
+    gradient.addColorStop(0.7, `rgba(${DENT},0.25)`);
+    gradient.addColorStop(1, `rgba(${DENT},0)`);
+    context.fillStyle = gradient;
+    context.beginPath();
+    context.ellipse(x, y, width, height, turn, 0, TAU);
+    context.fill();
+    context.strokeStyle = `rgba(${LIGHT},0.6)`;
+    context.lineWidth = LINES.light * pixel;
+    context.beginPath();
+    context.ellipse(x, y, width, height, turn, 0, Math.PI);
+    context.stroke();
+  });
+}
+
 export class Crack {
   constructor(x, y, pattern, seconds) {
     this.x = x;
@@ -38,6 +67,7 @@ export class Crack {
     this.pattern = pattern;
     this.seconds = seconds;
     this.lines = shatter(pattern);
+    this.prints = pattern.knuckles ? knuckles(pattern.knuckles) : [];
     this.age = 0;
   }
 
@@ -49,6 +79,7 @@ export class Crack {
   draw(context, pixel) {
     const { x, y, pattern } = this;
     const fading = clamp((1 - this.age / this.seconds) / (1 - LINES.hold), 0, 1);
+    radiate(context, x, y, pattern.core * 3, [[0, `rgba(${LIGHT},${0.8 * fading})`], [1, `rgba(${LIGHT},0)`]]);
     context.save();
     context.translate(x, y);
     context.globalAlpha = fading;
@@ -62,6 +93,7 @@ export class Crack {
     context.strokeStyle = `rgba(${LIGHT},0.9)`;
     context.lineWidth = LINES.light * pixel;
     context.stroke();
+    paintKnuckles(context, pixel, this.prints);
     if (pattern.hole) {
       context.fillStyle = HOLE;
       context.strokeStyle = `rgba(${LIGHT},0.8)`;
@@ -71,6 +103,5 @@ export class Crack {
       context.stroke();
     }
     context.restore();
-    radiate(context, x, y, pattern.core * 3, [[0, `rgba(${LIGHT},${0.8 * fading})`], [1, `rgba(${LIGHT},0)`]]);
   }
 }

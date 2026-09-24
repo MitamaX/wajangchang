@@ -1,13 +1,15 @@
 import { FIST } from '../config.js';
 import { paintReticle, radiate } from '../core/canvas.js';
 import { TAU, easeOut, lerp, polar, randomBetween } from '../core/math.js';
+import { Cooldown } from './Cooldown.js';
 import { Crack } from './Glass.js';
 import { Tool } from './Tool.js';
 
 const SIZE = FIST.size;
 const BURST = Object.freeze({ seconds: 0.11, points: 10, inner: 0.45, reach: [0.9, 1.9] });
 const RING = Object.freeze({ seconds: 0.35, reach: 3.2, width: 5 });
-const CRACK = Object.freeze({ spokes: [9, 13], reach: [0.22, 0.42], bends: 5, jitter: 0.16, rings: [0.3, 0.62], skip: 0.3, core: 0.02 });
+const KNUCKLES = Object.freeze({ gap: 0.021, arch: 0.006, size: [0.0095, 0.0075], scale: [0.95, 1.05, 1, 0.82], tilt: 0.25 });
+const CRACK = Object.freeze({ spokes: [5, 7], reach: [0.07, 0.13], bends: 4, jitter: 0.18, rings: [0.55], skip: 0.55, core: 0.03, knuckles: KNUCKLES });
 const FLASH = '255,250,235';
 const FLASH_EDGE = '255,210,120';
 
@@ -45,6 +47,7 @@ export class Fist extends Tool {
     this.onPunch = onPunch;
     this.cracks = [];
     this.bursts = [];
+    this.gap = new Cooldown(FIST.cooldown);
   }
 
   get spills() {
@@ -56,6 +59,8 @@ export class Fist extends Tool {
   }
 
   windUp() {
+    if (!this.gap.ready) return;
+    this.gap.trigger();
     const { aimX: x, aimY: y } = this;
     this.cracks.push(new Crack(x, y, CRACK, FIST.crackSeconds));
     this.bursts.push({ x, y, age: 0, turn: randomBetween(0, TAU) });
@@ -69,6 +74,7 @@ export class Fist extends Tool {
   }
 
   update(dt) {
+    this.gap.tick(dt);
     this.cracks = this.cracks.filter((crack) => crack.update(dt));
     this.bursts = this.bursts.filter((burst) => (burst.age += dt) < RING.seconds);
   }

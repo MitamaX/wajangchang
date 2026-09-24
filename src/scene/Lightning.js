@@ -1,6 +1,7 @@
 import { LIGHTNING } from '../config.js';
 import { paintReticle, radiate, strokeLayers } from '../core/canvas.js';
 import { TAU, clamp, normalize, randomBetween, randomInt, rotate } from '../core/math.js';
+import { Cooldown } from './Cooldown.js';
 import { Tool } from './Tool.js';
 
 const SKY_GAP = 0.05;
@@ -188,8 +189,7 @@ export class Lightning extends Tool {
     this.onStrike = onStrike;
     this.onCharge = onCharge;
     this.bolts = [];
-    this.clock = 0;
-    this.lastBolt = -Infinity;
+    this.gap = new Cooldown(LIGHTNING.cooldown);
   }
 
   get spills() {
@@ -205,8 +205,8 @@ export class Lightning extends Tool {
   }
 
   windUp() {
-    if (this.clock - this.lastBolt < LIGHTNING.cooldown) return;
-    this.lastBolt = this.clock;
+    if (!this.gap.ready) return;
+    this.gap.trigger();
     const reach = this.room.halfWidth;
     const fromX = clamp(this.aimX + randomBetween(-LIGHTNING.drift, LIGHTNING.drift), -reach, reach);
     this.bolts.push(new Bolt(fromX, -this.room.ceiling, this.aimX, this.aimY));
@@ -219,7 +219,7 @@ export class Lightning extends Tool {
   }
 
   update(dt) {
-    this.clock += dt;
+    this.gap.tick(dt);
     this.bolts.forEach((bolt) => {
       bolt.update(dt);
       if (!bolt.due) return;
