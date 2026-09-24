@@ -24,6 +24,27 @@ function crossesColumn(ax, ay, bx, by, fromY, toY, columnX) {
   return y >= fromY && y <= toY;
 }
 
+function openWalk(cells, width, x, y, toX, toY, alongX) {
+  while (x !== toX || y !== toY) {
+    const moveX = alongX ? x !== toX : y === toY;
+    const nextX = moveX ? x + Math.sign(toX - x) : x;
+    const nextY = moveX ? y : y + Math.sign(toY - y);
+    const cut = moveX ? cells.cutRight[y * width + Math.min(x, nextX)] : cells.cutDown[Math.min(y, nextY) * width + x];
+    if (cut || !cells.solid[nextY * width + nextX]) return false;
+    x = nextX;
+    y = nextY;
+  }
+  return true;
+}
+
+function linked(cells, width, from, to) {
+  const fromX = from % width;
+  const fromY = (from - fromX) / width;
+  const toX = to % width;
+  const toY = (to - toX) / width;
+  return openWalk(cells, width, fromX, fromY, toX, toY, true) || openWalk(cells, width, fromX, fromY, toX, toY, false);
+}
+
 function wobbleFunction() {
   const phases = WOBBLE_HARMONICS.map(() => randomBetween(0, TAU));
   return (angle) => {
@@ -245,6 +266,7 @@ export class CellGrid {
 
   pinch(cx, cy, radius, strength) {
     const source = Object.fromEntries(CELL_FIELDS.map((field) => [field, this[field].slice()]));
+    const origins = new Map();
     this.forEachCellWithin(cx, cy, radius, (index, distance, dx, dy) => {
       const scale = pinchScale(distance, radius, strength);
       const sampleX = Math.floor(cx + dx * scale);
@@ -254,13 +276,24 @@ export class CellGrid {
         return;
       }
       const from = sampleY * this.width + sampleX;
+      origins.set(index, from);
       CELL_FIELDS.forEach((field) => {
         this[field][index] = source[field][from];
       });
     });
+    this.recut(source, (index) => origins.get(index) ?? index, cx, cy, radius);
     this.tips = this.tips.map((tip) => {
       const [x, y] = pinchedPosition(tip.x, tip.y, cx, cy, radius, strength);
       return { ...tip, x, y };
+    });
+  }
+
+  recut(source, origin, cx, cy, radius) {
+    const { width, solid } = this;
+    const severed = (index, neighbor) => Boolean(solid[index] && solid[neighbor]) && !linked(source, width, origin(index), origin(neighbor));
+    this.forEachCellWithin(cx, cy, radius + 1, (index) => {
+      if ((index % width) + 1 < width) this.cutRight[index] = severed(index, index + 1) ? 1 : 0;
+      if (index + width < solid.length) this.cutDown[index] = severed(index, index + width) ? 1 : 0;
     });
   }
 
