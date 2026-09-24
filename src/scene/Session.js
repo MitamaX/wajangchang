@@ -1,4 +1,4 @@
-import { CELL_METERS, CHARGE, COMPLETION, FLAME, FRAGMENTS, GRAVITY, IMPACT, KATANA, PRESS, SAW, SHOCKWAVE, SPECIMEN } from '../config.js';
+import { CELL_METERS, CHARGE, COMPLETION, FRAGMENTS, GRAVITY, IMPACT, KATANA, PRESS, SAW, SHOCKWAVE, SPECIMEN } from '../config.js';
 import { wholePercent } from '../core/format.js';
 import { TAU, clamp, lerp, normalize, randomBetween, sum } from '../core/math.js';
 import { Fragment, cellMapper } from '../destruction/Fragment.js';
@@ -10,7 +10,6 @@ import { PhysicsWorld } from '../physics/PhysicsWorld.js';
 import { Bomber } from './Bomber.js';
 import { Debris } from './Debris.js';
 import { Fallout } from './Fallout.js';
-import { Flame } from './Flame.js';
 import { Hammer } from './Hammer.js';
 import { ImpactLedger } from './ImpactLedger.js';
 import { Katana } from './Katana.js';
@@ -64,7 +63,6 @@ export class Session {
       saw: new Saw(room, { onGrind: (cut) => this.grind(cut), onWhir: () => sound.whir() }),
       katana: new Katana(room, { onSlash: (line) => this.slash(line), onSever: (marks) => this.sever(marks) }),
       press: new Press(room, { onCrush: (stroke) => this.crush(stroke), onLand: (x) => this.land(x), onHum: () => sound.hum() }),
-      flame: new Flame(room, { onIgnite: () => this.ignite(), onScorch: (jet) => this.scorch(jet), onRoar: (searing) => this.roar(searing) }),
     };
     this.tools = Object.values(this.kit);
     this.tool = this.kit[tool];
@@ -550,57 +548,6 @@ export class Session {
   squeezeImpact({ x, bottom }) {
     const { strength } = this.material.press;
     return { x, y: bottom, burst: PRESS.burst, strength, aim: (center) => normalize(Math.sign(center.x - x) || 1, -PRESS.squeeze) };
-  }
-
-  ignite() {
-    this.sound.ignite();
-    this.shock = FLAME.igniteShock;
-  }
-
-  roar(searing) {
-    this.sound.roar();
-    if (searing) this.sound.sear(this.material.key);
-  }
-
-  scorch(jet) {
-    const hit = this.probe(jet);
-    if (!hit) return null;
-    if (!this.started) this.onEngage();
-    if (jet.first) this.stats.strikes++;
-    const { fragment, point } = hit;
-    const heading = normalize(jet.bx - jet.ax, jet.by - jet.ay);
-    const { fire } = this.material;
-    const [cellX, cellY] = fragment.toCell(point.x, point.y);
-    fragment.skin.scorch(cellX, cellY, fire.burn * FLAME.charReach, fire.char);
-    const heated = this.hitFragment(fragment, { ...point, normalX: heading[0], normalY: heading[1], strength: fire.strength }, 'blow');
-    this.melt(fragment, this.fracture.carve(fragment.grid, { x: cellX, y: cellY, radius: fire.burn }), point);
-    this.fallout.impact(point.x, point.y, fire.strength, this.paletteOf(fragment, heated.point), 1);
-    this.fallout.smolder(point.x, point.y, FLAME.smoke);
-    this.propel(fragment, heading);
-    this.shock = FLAME.shock;
-    this.apply(fragment, [heated], { x: point.x, y: point.y, ...FLAME.blowout, aim: () => heading });
-    return point;
-  }
-
-  melt(fragment, molten, { x, y }) {
-    if (!molten.changed) return;
-    fragment.reshaped = true;
-    this.fallout.melt(x, y, molten.removed.length, this.material.fire.ember);
-  }
-
-  propel({ body }, [alongX, alongY]) {
-    if (this.frozen) return;
-    const thrust = FLAME.thrust * heftOf(body, FLAME.heft);
-    nudge(body, alongX * thrust, alongY * thrust);
-  }
-
-  probe({ ax, ay, bx, by }) {
-    const steps = Math.ceil(Math.hypot(bx - ax, by - ay) / FLAME.step);
-    for (let i = 0; i <= steps; i++) {
-      const contact = this.contactAt(lerp(ax, bx, i / steps), lerp(ay, by, i / steps), FLAME.contact);
-      if (contact) return contact;
-    }
-    return null;
   }
 
   land(x) {
