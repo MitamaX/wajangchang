@@ -284,7 +284,7 @@ export const BLACKHOLE = Object.freeze({
 });
 
 export const FIST = Object.freeze({
-  cooldown: 0.25,
+  cooldown: 0.1,
   crackSeconds: 1.2,
   size: 0.1,
   blow: Object.freeze({
