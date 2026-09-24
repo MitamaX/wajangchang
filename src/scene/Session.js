@@ -227,7 +227,7 @@ export class Session {
     const grounded = blow.y + blow.radius >= -FLOOR_TOLERANCE;
     if (grounded) this.pound(blow);
     if (!landed && !grounded) this.sound.cue('miss');
-    const { hitStop, ...shock } = shockOf(blow.force, landed || grounded);
+    const { hitStop, ...shock } = { ...shockOf(blow.force, landed || grounded), ...blow.shock };
     this.lastStrike = this.clock;
     this.shock = shock;
     this.stall = hitStop;

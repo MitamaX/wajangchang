@@ -188,6 +188,8 @@ export class Lightning extends Tool {
     this.onStrike = onStrike;
     this.onCharge = onCharge;
     this.bolts = [];
+    this.clock = 0;
+    this.lastBolt = -Infinity;
   }
 
   get spills() {
@@ -203,6 +205,8 @@ export class Lightning extends Tool {
   }
 
   windUp() {
+    if (this.clock - this.lastBolt < LIGHTNING.cooldown) return;
+    this.lastBolt = this.clock;
     const reach = this.room.halfWidth;
     const fromX = clamp(this.aimX + randomBetween(-LIGHTNING.drift, LIGHTNING.drift), -reach, reach);
     this.bolts.push(new Bolt(fromX, -this.room.ceiling, this.aimX, this.aimY));
@@ -215,6 +219,7 @@ export class Lightning extends Tool {
   }
 
   update(dt) {
+    this.clock += dt;
     this.bolts.forEach((bolt) => {
       bolt.update(dt);
       if (!bolt.due) return;

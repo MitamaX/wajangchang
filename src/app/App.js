@@ -152,6 +152,10 @@ export class App {
     this.viewWidth = Math.max(1, bounds.width);
     this.viewHeight = Math.max(1, bounds.height);
     this.renderer.resize(this.viewWidth, this.viewHeight, pixelRatio());
+    this.restage();
+  }
+
+  restage() {
     if (this.session && !this.session.started) this.session.refit(this.roomAspect);
     const room = this.session ? this.session.room : Room.fitting(PLACEHOLDER_METERS, PLACEHOLDER_METERS, this.roomAspect);
     this.camera.frame(this.viewWidth, this.viewHeight, room);
@@ -199,7 +203,7 @@ export class App {
     this.session = new Session({ specimen, material, room, sound: this.sound, tool: this.toolKey, onEngage: () => this.engage() });
     if (this.wieldsInSetup) this.session.wield();
     this.carry = 0;
-    this.resize();
+    this.restage();
     this.status.material = material.label;
     this.setup.selectMaterial(materialKey);
   }

@@ -9,6 +9,7 @@ const SHAKE_HARMONIC = 1.73;
 const SHAKE_BLEND = 0.6;
 const MAX_ROLL = 0.035;
 const TRAUMA_DECAY = 1.1;
+const QUAKE_DECAY = 0.35;
 const KICK_REACH = 0.035;
 const KICK_FREQUENCY = 6;
 const KICK_DECAY = 7;
@@ -64,6 +65,7 @@ export class Camera {
     this.span = 1;
     this.time = 0;
     this.trauma = 0;
+    this.quake = 0;
     this.kick = 0;
     this.kickAge = 0;
     this.punch = 0;
@@ -94,8 +96,9 @@ export class Camera {
     return this.field.width / this.field.height;
   }
 
-  impact({ trauma, kick, punch, flash }) {
+  impact({ trauma, kick, punch, flash, quake = 0 }) {
     this.trauma = Math.max(this.trauma, trauma);
+    this.quake = Math.max(this.quake, quake);
     this.kick = Math.max(this.lurch, kick * KICK_REACH * this.span);
     this.kickAge = 0;
     this.punch = Math.max(this.punch, punch);
@@ -111,11 +114,12 @@ export class Camera {
     this.time += dt;
     this.kickAge += dt;
     this.trauma = Math.max(0, this.trauma - TRAUMA_DECAY * dt);
+    this.quake = Math.max(0, this.quake - QUAKE_DECAY * dt);
     this.punch *= Math.exp(-PUNCH_DECAY * dt);
     this.flash *= Math.exp(-FLASH_DECAY * dt);
     this.tension += (this.tensionTarget - this.tension) * Math.min(1, TENSION_EASE * dt);
     const motion = still ? 0 : 1;
-    const shake = Math.max(this.trauma, this.tension * TENSION_RUMBLE) ** 2 * motion;
+    const shake = Math.max(this.trauma, this.quake, this.tension * TENSION_RUMBLE) ** 2 * motion;
     this.shakeX = shake * SHAKE_REACH * this.span * wave(this.time, AXES.x);
     this.shakeY = shake * SHAKE_REACH * this.span * wave(this.time, AXES.y);
     this.roll = this.trauma ** 2 * MAX_ROLL * wave(this.time, AXES.roll) * motion;

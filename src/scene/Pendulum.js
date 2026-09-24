@@ -105,10 +105,10 @@ export class Pendulum extends Tool {
     this.onHit = onHit;
     this.onGrab = onGrab;
     this.onPass = onPass;
-    this.pivotX = 0;
     this.angle = 0;
     this.spin = 0;
     this.holding = false;
+    this.grab = { angle: 0, x: 0 };
     this.body = null;
     this.clock = 0;
     this.lastHit = -Infinity;
@@ -154,19 +154,18 @@ export class Pendulum extends Tool {
     return { x, y, radius: RADIUS, charge: PENDULUM.tension * Math.min(1, Math.abs(this.angle) / PENDULUM.reach) };
   }
 
-  get limits() {
-    const { halfWidth } = this.room;
-    const room = (edge) => Math.asin(clamp((edge - this.pivotX) / this.length, -1, 1));
-    return [Math.max(-PENDULUM.reach, room(-halfWidth + RADIUS)), Math.min(PENDULUM.reach, room(halfWidth - RADIUS))];
+  get limit() {
+    return Math.min(PENDULUM.reach, Math.asin(Math.min(1, (this.room.halfWidth - RADIUS) / this.length)));
   }
 
   bobAt(angle) {
-    return [this.pivotX + Math.sin(angle) * this.length, this.pivotY + Math.cos(angle) * this.length];
+    return [Math.sin(angle) * this.length, this.pivotY + Math.cos(angle) * this.length];
   }
 
   windUp() {
     this.holding = true;
     if (!this.body) this.hang();
+    this.grab = { angle: this.angle, x: this.aimX };
     this.onGrab();
   }
 
@@ -203,7 +202,6 @@ export class Pendulum extends Tool {
     const previous = this.angle;
     if (this.holding) this.pull(dt);
     else if (this.swinging) this.sway(dt);
-    else this.pivotX = clamp(this.aimX, -this.room.halfWidth, this.room.halfWidth);
     if (!this.swinging) return;
     this.trail.unshift(this.angle);
     if (this.trail.length > TRAIL.frames) this.trail.pop();
@@ -214,7 +212,8 @@ export class Pendulum extends Tool {
   }
 
   pull(dt) {
-    const target = clamp(Math.atan2(this.aimX - this.pivotX, this.aimY - this.pivotY), ...this.limits);
+    const { grab, limit } = this;
+    const target = clamp(grab.angle + (this.aimX - grab.x) / this.length, -limit, limit);
     const next = lerp(this.angle, target, Math.min(1, PENDULUM.follow * dt * TAU));
     this.spin = dt ? (next - this.angle) / dt : 0;
     this.angle = next;
@@ -261,32 +260,32 @@ export class Pendulum extends Tool {
   }
 
   drawMount(context, pixel) {
-    const { pivotX, pivotY } = this;
+    const { pivotY } = this;
     const top = -this.room.ceiling;
     inkOutline(context, pixel);
-    context.fillStyle = steel(context, pivotX - MOUNT.gap, 0, pivotX + MOUNT.gap, 0);
+    context.fillStyle = steel(context, -MOUNT.gap, 0, MOUNT.gap, 0);
     [-1, 1].forEach((side) => {
-      const x = pivotX + side * MOUNT.gap - MOUNT.strap / 2;
+      const x = side * MOUNT.gap - MOUNT.strap / 2;
       context.fillRect(x, top, MOUNT.strap, pivotY - top);
       context.strokeRect(x, top, MOUNT.strap, pivotY - top);
     });
     context.fillStyle = steel(context, 0, top, 0, top + MOUNT.height);
-    context.fillRect(pivotX - MOUNT.width / 2, top - MOUNT.height, MOUNT.width, MOUNT.height * 2);
-    context.strokeRect(pivotX - MOUNT.width / 2, top - MOUNT.height, MOUNT.width, MOUNT.height * 2);
+    context.fillRect(-MOUNT.width / 2, top - MOUNT.height, MOUNT.width, MOUNT.height * 2);
+    context.strokeRect(-MOUNT.width / 2, top - MOUNT.height, MOUNT.width, MOUNT.height * 2);
     context.save();
-    context.translate(pivotX, pivotY);
+    context.translate(0, pivotY);
     paintGear(context, pixel, -this.angle * GEAR.ratio);
     context.restore();
   }
 
   drawGuide(context, pixel) {
-    const [from, to] = this.limits;
+    const { limit } = this;
     context.save();
     context.strokeStyle = `rgba(255,255,255,${GUIDE.alpha})`;
     context.lineWidth = GUIDE.width * pixel;
     context.setLineDash([GUIDE.dash * pixel, GUIDE.dash * pixel]);
     context.beginPath();
-    context.arc(this.pivotX, this.pivotY, this.length, Math.PI / 2 - to, Math.PI / 2 - from);
+    context.arc(0, this.pivotY, this.length, Math.PI / 2 - limit, Math.PI / 2 + limit);
     context.stroke();
     context.restore();
   }
@@ -295,7 +294,7 @@ export class Pendulum extends Tool {
     const rush = clamp((this.speed - TRAIL.from) / (TRAIL.full - TRAIL.from), 0, 1);
     if (rush > 0) this.drawBlur(context, pixel, rush);
     context.save();
-    context.translate(this.pivotX, this.pivotY);
+    context.translate(0, this.pivotY);
     context.rotate(-this.angle);
     paintRod(context, pixel, this.length);
     context.restore();
@@ -313,7 +312,7 @@ export class Pendulum extends Tool {
     context.lineCap = 'round';
     context.beginPath();
     const [from, to] = [Math.PI / 2 - oldest, Math.PI / 2 - this.angle];
-    context.arc(this.pivotX, this.pivotY, this.length, Math.min(from, to), Math.max(from, to));
+    context.arc(0, this.pivotY, this.length, Math.min(from, to), Math.max(from, to));
     context.stroke();
     context.restore();
     context.save();

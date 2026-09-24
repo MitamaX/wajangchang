@@ -9,8 +9,8 @@ const SIZE = NUKE.size;
 const BODY = Object.freeze({ width: SIZE, height: SIZE * 1.7 });
 const TAIL = Object.freeze({ width: SIZE * 0.9, height: SIZE * 0.55, fin: SIZE * 0.35 });
 const BAND = Object.freeze({ top: -SIZE * 0.25, height: SIZE * 0.3 });
-const MUSHROOM = Object.freeze({ peak: 0.6, cap: 0.2, squash: 0.55, stem: 0.07, flare: 1.9, grow: 0.4, cool: 2.2, linger: 0.35, roll: 2.4, curl: 0.35, puff: 0.55, climb: 0.35, skirt: 0.55, whiteout: 0.22, white: 0.95 });
-const PUFF = Object.freeze({ cap: 18, stem: 24, skirt: 12, stemSwell: 1.5, dust: 0.12, palette: [[70, 64, 60], [150, 60, 30], [240, 110, 40], [255, 190, 90], [255, 246, 220]] });
+const MUSHROOM = Object.freeze({ peak: 0.72, cap: 0.26, squash: 0.55, stem: 0.085, flare: 1.9, grow: 0.45, cool: 1.8, linger: 0.35, roll: 0.9, curl: 0.35, puff: 0.55, climb: 0.16, skirt: 0.85, whiteout: 0.9, white: 0.95 });
+const PUFF = Object.freeze({ cap: 24, stem: 30, skirt: 18, stemSwell: 1.5, dust: 0.12, palette: [[70, 64, 60], [150, 60, 30], [240, 110, 40], [255, 190, 90], [255, 246, 220]] });
 const TARGET = Object.freeze({ radius: 0.07, width: 2, dash: 6, spin: 30, blink: 18, color: '255,70,50' });
 const CASING = ['#6f7a5c', '#3a4231'];
 const FIN_PAINT = '#2d3327';
@@ -236,9 +236,10 @@ export class Nuke extends Tool {
   }
 
   paintWhiteout(context, { age }) {
-    if (age >= MUSHROOM.whiteout) return;
+    const glare = 1 - age / MUSHROOM.whiteout;
+    if (glare <= 0) return;
     const { halfWidth, ceiling } = this.room;
-    context.fillStyle = `rgba(255,255,255,${MUSHROOM.white * (1 - age / MUSHROOM.whiteout)})`;
+    context.fillStyle = `rgba(${heatColor(glare)},${MUSHROOM.white * glare ** 2})`;
     context.fillRect(-halfWidth * 2, -ceiling * 2, halfWidth * 4, ceiling * 3);
   }
 }
