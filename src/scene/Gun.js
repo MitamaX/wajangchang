@@ -9,7 +9,7 @@ const LENS = 1.3;
 const HOLD = Object.freeze({ x: 0, y: 0.17, z: 0.3, depth: 3, follow: 12, sink: 0.3, sway: 0.003, swayRate: 2 });
 const HOUSING = Object.freeze({ from: -0.06, to: 0.07, width: 0.036, height: 0.034, inset: 0.2 });
 const BARRELS = Object.freeze({ count: 6, from: 0.07, to: 0.62, radius: 0.021, width: 0.0105, clamps: [0.25, 0.47], plate: 0.034, bore: 0.008 });
-const CHUTE = Object.freeze({ width: 0.024, steps: 10, links: 0.18 });
+const CHUTE = Object.freeze({ width: 0.024, steps: 10, links: 0.18, from: 0.02, to: -0.14, drop: 0.2, drift: 0.09, sag: 0.34 });
 const MUZZLE = BARRELS.to + 0.012;
 const PORT = Object.freeze({ s: 0, x: 0.036, y: 0.02 });
 const RECOIL = Object.freeze({ kick: 0.012, limit: 0.03, return: 16, jitter: 0.006 });
@@ -374,7 +374,7 @@ export class Gun extends Tool {
   drawChute(context, pixel, { at }) {
     const points = Array.from({ length: CHUTE.steps + 1 }, (_, i) => {
       const t = i / CHUTE.steps;
-      return at(lerp(0.02, -0.14, t), HOUSING.width + t * 0.09, -HOUSING.height * 0.2 - t * t * 0.34);
+      return add(at(lerp(CHUTE.from, CHUTE.to, t), HOUSING.width + t * CHUTE.drift, -HOUSING.height * CHUTE.drop), [0, t * t * CHUTE.sag, 0]);
     });
     for (let i = 1; i < points.length; i++) {
       const near = points[i];
