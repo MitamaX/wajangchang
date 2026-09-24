@@ -24,7 +24,15 @@
       </div>
 
       <main class="work">
-        <nav class="rack" id="rack" aria-label="도구"></nav>
+        <nav class="rack" id="rack" aria-label="도구">
+          <button class="rack-arrow" id="rackPrev" type="button" aria-label="이전">
+            <svg viewBox="0 0 10 28" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 3 2 14l6 11"/></svg>
+          </button>
+          <div class="rack-tiles" id="rackTiles"></div>
+          <button class="rack-arrow" id="rackNext" type="button" aria-label="다음">
+            <svg viewBox="0 0 10 28" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m2 3 6 11-6 11"/></svg>
+          </button>
+        </nav>
         <section class="stage-wrap" id="stageWrap">
           <canvas id="stage" tabindex="0" aria-label="부수기 판"></canvas>
           <div class="stage-controls">

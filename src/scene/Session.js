@@ -1,4 +1,4 @@
-import { CELL_METERS, CHARGE, COMPLETION, FRAGMENTS, GRAVITY, IMPACT, KATANA, PRESS, SAW, SHOCKWAVE, SPECIMEN } from '../config.js';
+import { CELL_METERS, COMPLETION, FRAGMENTS, GRAVITY, IMPACT, KATANA, PRESS, SAW, SHOCKWAVE, SPECIMEN } from '../config.js';
 import { wholePercent } from '../core/format.js';
 import { TAU, clamp, lerp, normalize, randomBetween, sum } from '../core/math.js';
 import { Fragment, cellMapper } from '../destruction/Fragment.js';
@@ -7,14 +7,10 @@ import { FractureModel } from '../destruction/FractureModel.js';
 import { squeeze, squeezedBounds } from '../destruction/squeeze.js';
 import { Splitter } from '../destruction/Splitter.js';
 import { PhysicsWorld } from '../physics/PhysicsWorld.js';
-import { Bomber } from './Bomber.js';
+import { ARSENAL } from './arsenal.js';
 import { Debris } from './Debris.js';
 import { Fallout } from './Fallout.js';
-import { Hammer } from './Hammer.js';
 import { ImpactLedger } from './ImpactLedger.js';
-import { Katana } from './Katana.js';
-import { Press } from './Press.js';
-import { Saw } from './Saw.js';
 
 const FLOOR_TOLERANCE = 0.004;
 const GOLDEN_ANGLE = Math.PI * (3 - Math.sqrt(5));
@@ -56,14 +52,7 @@ export class Session {
     this.debris = new Debris();
     this.fallout = new Fallout(this.debris, specimen, material.look);
     this.ledger = new ImpactLedger(this.physics);
-    const onStrike = (blow) => this.strike(blow);
-    this.kit = {
-      hammer: new Hammer(room, { onStrike, onTier: (tier) => sound.chime(tier, tier === CHARGE.tiers.length) }),
-      bomb: new Bomber(room, this, { onStrike, onPlant: () => sound.plant(), onTick: () => sound.tick() }),
-      saw: new Saw(room, { onGrind: (cut) => this.grind(cut), onWhir: () => sound.whir() }),
-      katana: new Katana(room, { onSlash: (line) => this.slash(line), onSever: (marks) => this.sever(marks) }),
-      press: new Press(room, { onCrush: (stroke) => this.crush(stroke), onLand: (x) => this.land(x), onHum: () => sound.hum() }),
-    };
+    this.kit = Object.fromEntries(ARSENAL.map(({ key, arm }) => [key, arm(this)]));
     this.tools = Object.values(this.kit);
     this.tool = this.kit[tool];
     this.tool.active = true;

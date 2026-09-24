@@ -14,10 +14,10 @@ import { Renderer } from '../render/Renderer.js';
 import { buildReport, shareText } from '../report/Report.js';
 import { STAMP_DELAY, makeSeal, paintOutro } from '../report/ReportCard.js';
 import { SAMPLES } from '../samples/samples.js';
+import { ARSENAL } from '../scene/arsenal.js';
 import { Camera, Room } from '../scene/Camera.js';
 import { Session } from '../scene/Session.js';
-import { byId, markSelected, tileButton } from '../ui/dom.js';
-import { ICONS } from '../ui/icons.js';
+import { byId } from '../ui/dom.js';
 import { ImageIntake } from '../ui/ImageIntake.js';
 import { PauseMenu } from '../ui/PauseMenu.js';
 import { ResultDialog } from '../ui/ResultDialog.js';
@@ -25,6 +25,7 @@ import { SetupPanel } from '../ui/SetupPanel.js';
 import { StageInput } from '../ui/StageInput.js';
 import { StatusBar } from '../ui/StatusBar.js';
 import { Toast } from '../ui/Toast.js';
+import { ToolRack } from '../ui/ToolRack.js';
 
 const MAX_FRAME_SECONDS = 0.05;
 const THUMB_SIZE = 220;
@@ -35,13 +36,6 @@ const REPORT_FONT_TIMEOUT = 1500;
 const FILE_PREFIX = '와장창_';
 const PAUSE_KEY = 'Escape';
 const OUTRO_CUES = [{ name: 'stamp', offset: STAMP_DELAY / 1000 }];
-const TOOLS = [
-  { key: 'hammer', label: '망치', icon: ICONS.hammer, shortcut: '1' },
-  { key: 'bomb', label: '폭탄', icon: ICONS.bomb, shortcut: '2' },
-  { key: 'saw', label: '톱날', icon: ICONS.saw, shortcut: '3' },
-  { key: 'katana', label: '참격', icon: ICONS.katana, shortcut: '4' },
-  { key: 'press', label: '프레스', icon: ICONS.press, shortcut: '5' },
-];
 
 const Phase = Object.freeze({ SETUP: 'setup', PLAYING: 'playing', PAUSED: 'paused', SETTLING: 'settling', DONE: 'done' });
 const PAUSABLE = new Set([Phase.PLAYING, Phase.PAUSED]);
@@ -113,7 +107,8 @@ export class App {
       onRelease: () => this.session.tool.release(),
       onCancel: () => this.session.tool.cancel(),
     });
-    this.buildRack();
+    this.rack = new ToolRack(ARSENAL, { onSelect: (key) => this.selectTool(key) });
+    this.selectTool(ARSENAL[0].key);
     this.bindChrome();
     new ResizeObserver(() => this.resize()).observe(this.wrap);
     this.resize();
@@ -126,16 +121,9 @@ export class App {
     requestAnimationFrame((time) => this.frame(time));
   }
 
-  buildRack() {
-    this.tools = TOOLS.map((tool) => tileButton(tool));
-    byId('rack').append(...this.tools);
-    this.tools.forEach((button) => button.addEventListener('click', () => this.selectTool(button.dataset.key)));
-    this.selectTool(TOOLS[0].key);
-  }
-
   selectTool(key) {
     this.toolKey = key;
-    markSelected(this.tools, 'aria-pressed', key);
+    this.rack.select(key);
     if (this.session) this.session.equip(key);
   }
 
@@ -150,8 +138,8 @@ export class App {
     window.addEventListener('keydown', (event) => {
       if (event.key === PAUSE_KEY) this.togglePause();
       if (event.target.tagName === 'INPUT' || event.metaKey || event.ctrlKey || event.altKey) return;
-      const tool = TOOLS.find((entry) => entry.shortcut === event.key);
-      if (tool) this.selectTool(tool.key);
+      const key = this.rack.toolFor(event.key);
+      if (key) this.selectTool(key);
     });
   }
 

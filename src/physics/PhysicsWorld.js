@@ -12,14 +12,21 @@ const FLOOR_FRICTION = 0.8;
 const WALL_FRICTION = 0.3;
 const GROUP_SHIFT = 16;
 
-const Membership = Object.freeze({ ROOM: 0x1, FRAGMENT: 0x2 });
+const Membership = Object.freeze({ ROOM: 0x1, FRAGMENT: 0x2, TOOL: 0x4 });
 const interaction = (member, filter) => ((member << GROUP_SHIFT) | filter) >>> 0;
 
 export const Layer = Object.freeze({
-  fragment: interaction(Membership.FRAGMENT, Membership.ROOM | Membership.FRAGMENT),
+  fragment: interaction(Membership.FRAGMENT, Membership.ROOM | Membership.FRAGMENT | Membership.TOOL),
+  tool: interaction(Membership.TOOL, Membership.ROOM | Membership.FRAGMENT),
 });
 
-const ROOM_GROUPS = interaction(Membership.ROOM, Membership.FRAGMENT);
+const ROOM_GROUPS = interaction(Membership.ROOM, Membership.FRAGMENT | Membership.TOOL);
+
+const surfaced = (description, { density, friction, restitution, groups }) => description
+  .setDensity(density)
+  .setFriction(friction)
+  .setRestitution(restitution)
+  .setCollisionGroups(groups);
 
 const SIMD_PROBE = new Uint8Array([0, 97, 115, 109, 1, 0, 0, 0, 1, 5, 1, 96, 0, 1, 123, 3, 2, 1, 0, 10, 10, 1, 8, 0, 65, 0, 253, 15, 253, 98, 11]);
 
@@ -68,11 +75,7 @@ export class PhysicsWorld {
   attachConvex(body, points, surface) {
     const description = RAPIER.ColliderDesc.convexHull(points);
     if (!description) return null;
-    description
-      .setDensity(surface.density)
-      .setFriction(surface.friction)
-      .setRestitution(surface.restitution)
-      .setCollisionGroups(surface.groups)
+    surfaced(description, surface)
       .setActiveEvents(RAPIER.ActiveEvents.CONTACT_FORCE_EVENTS)
       .setContactForceEventThreshold(surface.forceThreshold);
     try {
@@ -80,6 +83,10 @@ export class PhysicsWorld {
     } catch {
       return null;
     }
+  }
+
+  attachBall(body, radius, surface) {
+    return this.world.createCollider(surfaced(RAPIER.ColliderDesc.ball(radius), surface), body);
   }
 
   removeCollider(collider) {

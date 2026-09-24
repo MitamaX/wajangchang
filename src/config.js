@@ -107,11 +107,16 @@ export const KATANA = Object.freeze({
   severShock: Object.freeze({ trauma: 0.6, kick: 0.4, punch: 0.05, flash: 0.45 }),
 });
 
+export const GANTRY = Object.freeze({
+  restGap: 0.02,
+  travel: 2.5,
+  overhang: 0.2,
+});
+
 export const PRESS = Object.freeze({
   halfWidth: 0.17,
   plateHeight: 0.06,
   rodWidth: 0.07,
-  restGap: 0.02,
   floorGap: 0.004,
   contactGap: 0.006,
   band: 0.02,
@@ -119,7 +124,6 @@ export const PRESS = Object.freeze({
   drop: 0.3,
   speed: 0.25,
   lift: 1.2,
-  travel: 2.5,
   tempo: 4,
   crushSeconds: 1 / 20,
   humSeconds: 0.2,
@@ -137,6 +141,28 @@ export const PRESS = Object.freeze({
   tension: Object.freeze({ moving: 0.2, crushing: 0.7 }),
   shock: Object.freeze({ trauma: 0.4, kick: 0.08, punch: 0.006, flash: 0 }),
   landShock: Object.freeze({ trauma: 0.8, kick: 0.6, punch: 0.04, flash: 0.1 }),
+});
+
+export const BALL = Object.freeze({
+  radius: 0.085,
+  surface: Object.freeze({ density: 900, friction: 0.5, restitution: 0.12 }),
+  reloadSeconds: 1,
+  smashSpeed: 1.2,
+  fullSpeed: 4,
+  weight: 0.45,
+  smashCooldown: 0.1,
+  contact: 0.03,
+  reach: 1.7,
+  strength: [2.5, 6],
+  hits: 12,
+  falloff: 0.4,
+  spray: 2.4,
+  burst: 2.6,
+  blast: Object.freeze({ reach: 0.4, speed: 5, heft: 0.1 }),
+  restSpeed: 0.05,
+  restSeconds: 0.8,
+  lifeSeconds: 6,
+  fadeSeconds: 0.4,
 });
 
 export const IMPACT = Object.freeze({

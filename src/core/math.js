@@ -4,6 +4,8 @@ export const clamp = (value, min, max) => (value < min ? min : value > max ? max
 
 export const lerp = (from, to, t) => from + (to - from) * t;
 
+export const easeIn = (t) => t ** 3;
+
 export const easeOut = (t) => 1 - (1 - t) ** 3;
 
 export const randomBetween = (min, max) => min + (max - min) * Math.random();
