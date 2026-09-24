@@ -123,8 +123,8 @@ export class SoundBoard {
     this.emit('sear');
   }
 
-  sizzle() {
-    this.emit('sizzle');
+  sizzle(cadence) {
+    this.emit('sizzle', cadence);
   }
 
   hum() {

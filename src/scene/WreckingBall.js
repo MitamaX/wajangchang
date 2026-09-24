@@ -200,7 +200,7 @@ export class WreckingBall extends Tool {
     this.reload += dt;
     this.steer(dt);
     this.balls.forEach((ball) => this.roll(ball, dt));
-    if (this.balls.some((ball) => ball.searing) && this.sizzles.tick(dt)) this.onSizzle();
+    if (this.balls.some((ball) => ball.searing) && this.sizzles.tick(dt)) this.onSizzle(BALL.sizzleSeconds);
     this.balls.filter((ball) => ball.gone).forEach((ball) => this.physics.removeBody(ball.body));
     this.balls = this.balls.filter((ball) => !ball.gone);
   }

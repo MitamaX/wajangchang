@@ -9,7 +9,7 @@ const SHATTER_BASE = 0.4;
 const SHATTER_STEP = 0.1;
 
 const CHIME = Object.freeze({ base: 65, step: 1.12, rise: 1.06, seconds: 1.1, gain: 0.22, cutoff: 600, brighten: 0.25, q: 5, attack: 0.08 });
-const SIZZLE = Object.freeze({ seconds: 0.34, band: [4200, 5600], q: 0.9, gain: 0.16, swell: 0.08, crackles: 3, spread: 0.14, crackle: [0.004, 0.01], pitch: [2500, 5200], snap: 0.12 });
+const SIZZLE = Object.freeze({ overlap: 4, hiss: Object.freeze({ frequency: 5000, q: 0.6, gain: 0.1 }) });
 
 const CUES = Object.freeze({
   thud: [
@@ -172,12 +172,8 @@ function crunch(synth, t, material) {
   VOICES[material].crack(synth, t, CRUNCH_LEVEL);
 }
 
-function sizzle(synth, t) {
-  const { seconds, band, q, gain, swell, crackles, spread, crackle, pitch, snap } = SIZZLE;
-  synth.hiss(t, seconds, { frequency: synth.between(...band), q, gain, attack: swell });
-  for (let i = 0; i < crackles; i++) {
-    synth.hiss(t + synth.between(0, spread), synth.between(...crackle), { type: 'highpass', frequency: synth.between(...pitch), gain: snap, attack: 0.001 });
-  }
+function sizzle(synth, t, cadence) {
+  synth.wash(t, cadence * SIZZLE.overlap, SIZZLE.hiss);
 }
 
 function chime(synth, t, tier, final) {

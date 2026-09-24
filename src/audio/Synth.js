@@ -6,6 +6,8 @@ const BELL_RATIOS = [1, 2.76, 5.4, 8.9];
 const DRONE_SPREAD = [0, 3.5, -4.5, 7];
 const MASTER_GAIN = 0.85;
 const COMPRESSOR = Object.freeze({ threshold: -16, knee: 12, ratio: 6, attack: 0.002, release: 0.25 });
+const WINDOW_POINTS = 64;
+const HANN_WINDOW = Float32Array.from({ length: WINDOW_POINTS }, (_, i) => Math.sin((Math.PI * i) / (WINDOW_POINTS - 1)) ** 2);
 
 function noiseBuffer(context) {
   const random = seededRandom(NOISE_SEED);
@@ -41,7 +43,7 @@ export class Synth {
     gain.gain.exponentialRampToValueAtTime(0.0001, start + duration);
   }
 
-  hiss(start, duration, { type = 'bandpass', frequency = 1000, to = 0, q = 0.8, gain = 0.4, attack = 0.002 }) {
+  filteredNoise(start, duration, { type, frequency, to, q }) {
     const source = this.context.createBufferSource();
     source.buffer = this.noise;
     source.loop = true;
@@ -51,12 +53,21 @@ export class Synth {
     if (to) filter.frequency.exponentialRampToValueAtTime(to, start + duration);
     filter.Q.value = q;
     const amplifier = this.context.createGain();
-    this.envelope(amplifier, start, gain, attack, duration);
     source.connect(filter);
     filter.connect(amplifier);
     amplifier.connect(this.master);
     source.start(start, this.random() * (NOISE_SECONDS - 0.5));
     source.stop(start + duration + 0.05);
+    return amplifier;
+  }
+
+  hiss(start, duration, { type = 'bandpass', frequency = 1000, to = 0, q = 0.8, gain = 0.4, attack = 0.002 }) {
+    this.envelope(this.filteredNoise(start, duration, { type, frequency, to, q }), start, gain, attack, duration);
+  }
+
+  wash(start, duration, { type = 'bandpass', frequency = 1000, q = 0.8, gain = 0.2 }) {
+    const amplifier = this.filteredNoise(start, duration, { type, frequency, to: 0, q });
+    amplifier.gain.setValueCurveAtTime(HANN_WINDOW.map((level) => level * gain), start, duration);
   }
 
   tone(start, duration, { type = 'sine', frequency = 440, to = 0, gain = 0.3, attack = 0.003 }) {
