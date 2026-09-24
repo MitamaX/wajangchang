@@ -17,6 +17,7 @@ const KINDS = Object.freeze({
   ember: { gravity: 1, drag: 0.5, bounce: 0.35, life: [0.5, 1.1], solid: false, glow: true },
   smoke: { gravity: -0.15, drag: 1.5, bounce: 0, life: [0.8, 1.6], solid: false, glow: false, grow: 1.2 },
   mist: { gravity: 0.08, drag: 2.2, bounce: 0, life: [0.6, 1.3], solid: false, glow: false, grow: 1.3 },
+  flake: { gravity: -0.1, drag: 1.1, bounce: 0, life: [0.9, 1.9], solid: false, glow: false, grow: -0.35 },
 });
 
 function shardOutline(kind) {

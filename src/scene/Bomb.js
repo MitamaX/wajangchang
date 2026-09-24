@@ -64,7 +64,7 @@ function paintFuse(context, pixel, remaining) {
   return fusePoint(remaining);
 }
 
-function paintSpark(context, pixel, x, y) {
+export function paintFuseSpark(context, pixel, x, y) {
   radiate(context, x, y, SPARK.reach * randomBetween(...SPARK.flicker), [
     [0, `rgba(${WHITE_HOT},0.95)`],
     [0.3, `rgba(${EMBER},0.7)`],
@@ -92,7 +92,7 @@ export function drawBomb(context, pixel, { x, y, angle = 0, remaining = 1, lit =
   paintShell(context, pixel);
   paintLamp(context, lit);
   const tip = paintFuse(context, pixel, remaining);
-  if (burning) paintSpark(context, pixel, ...tip);
+  if (burning) paintFuseSpark(context, pixel, ...tip);
   context.restore();
 }
 

@@ -1,4 +1,4 @@
-import { CELL_METERS } from '../config.js';
+import { CELL_METERS, DUST } from '../config.js';
 import { clamp, randomBetween } from '../core/math.js';
 import { velocityAt, worldFromCell } from '../destruction/Fragment.js';
 
@@ -77,18 +77,34 @@ export class Fallout {
     this.debris.spray('dust', x, y, { ...SPRAYS.dust, count: SURFACE_PUFF, color: SURFACE_DUST, direction: UPWARD, spread: 1.2 });
   }
 
+  twinkle(x, y, count, color) {
+    this.debris.spray('glint', x, y, { ...SPRAYS.glint, count, color });
+  }
+
   spill(fragment, removed) {
+    this.shed(fragment, removed, MAX_SPILL, (x, y, vx, vy, size, color) => {
+      this.chip(x, y, vx + randomBetween(-0.6, 0.6), vy - randomBetween(0.2, 1.2), size, color);
+    });
+  }
+
+  disperse(fragment, removed) {
+    const { flakes, wind } = DUST;
+    this.shed(fragment, removed, flakes, (x, y, vx, vy, size, color) => {
+      this.debris.add('flake', { x, y, vx: vx + randomBetween(...wind.x), vy: vy + randomBetween(...wind.y), size, color });
+    });
+  }
+
+  shed(fragment, removed, limit, emit) {
     const pose = fragment.pose();
     const { width } = fragment.grid;
-    const stride = Math.max(1, Math.round(removed.length / MAX_SPILL));
+    const stride = Math.max(1, Math.round(removed.length / limit));
     for (let i = 0; i < removed.length; i += stride) {
       const cellX = (removed[i] % width) + 0.5;
       const cellY = Math.floor(removed[i] / width) + 0.5;
       const [x, y] = worldFromCell(pose, cellX, cellY);
       const [vx, vy] = velocityAt(pose, x, y);
       const size = CELL_METERS * randomBetween(0.8, 1.6) * Math.sqrt(stride);
-      const color = this.specimen.colorAt(fragment.originX + cellX, fragment.originY + cellY);
-      this.chip(x, y, vx + randomBetween(-0.6, 0.6), vy - randomBetween(0.2, 1.2), size, color);
+      emit(x, y, vx, vy, size, this.specimen.colorAt(fragment.originX + cellX, fragment.originY + cellY));
     }
   }
 

@@ -14,6 +14,8 @@ export const randomInt = (min, max) => Math.floor(randomBetween(min, max + 1));
 
 export const randomSign = () => (Math.random() < 0.5 ? -1 : 1);
 
+export const wrap = (value, size) => ((value % size) + size) % size;
+
 export function gaussian() {
   let u = 0;
   while (u === 0) u = Math.random();
@@ -31,6 +33,15 @@ export function rotate(x, y, angle) {
 export function normalize(x, y) {
   const length = Math.hypot(x, y) || 1;
   return [x / length, y / length];
+}
+
+export function insidePolygon(x, y, points) {
+  let inside = false;
+  points.forEach(([ax, ay], i) => {
+    const [bx, by] = points[(i + 1) % points.length];
+    if (ay > y !== by > y && x < ax + ((bx - ax) * (y - ay)) / (by - ay)) inside = !inside;
+  });
+  return inside;
 }
 
 export function seededRandom(seed) {

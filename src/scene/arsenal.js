@@ -1,4 +1,4 @@
-import { ANVIL, ARROWS, AXE, BALL, BLACKHOLE, BOWLING, CANNON, CHARGE, GUN, LASER, LEVITY, METEOR, NUKE, PRESS, RAIL, REPULSOR, ROCKET, SHOTGUN, SHURIKEN, STOMP, TORNADO, TSUNAMI, VOLCANO } from '../config.js';
+import { ANVIL, ARROWS, AXE, BALL, BLACKHOLE, BOWLING, CANNON, CHARGE, CORD, DUST, GUN, LASER, LAVA, LEVITY, METEOR, NUKE, PRESS, PUMP, RAIL, REPULSOR, ROCKET, SHOTGUN, SHURIKEN, STOMP, TORNADO, TSUNAMI, VINE, VOLCANO } from '../config.js';
 import { Acid } from './Acid.js';
 import { Airstrike } from './Airstrike.js';
 import { Anvil } from './Anvil.js';
@@ -9,10 +9,14 @@ import { Bomber } from './Bomber.js';
 import { Boomerang } from './Boomerang.js';
 import { Bowling } from './Bowling.js';
 import { Cannon } from './Cannon.js';
+import { Claw } from './Claw.js';
 import { Cluster } from './Cluster.js';
+import { Cord } from './Cord.js';
+import { Cutter } from './Cutter.js';
 import { DiscThrower } from './DiscThrower.js';
 import { Drill } from './Drill.js';
 import { Drone } from './Drone.js';
+import { Dust } from './Dust.js';
 import { EnergyWave } from './EnergyWave.js';
 import { Fireworks } from './Fireworks.js';
 import { Fist } from './Fist.js';
@@ -25,21 +29,25 @@ import { Hammer } from './Hammer.js';
 import { Jackhammer } from './Jackhammer.js';
 import { Katana } from './Katana.js';
 import { Laser } from './Laser.js';
+import { Lava } from './Lava.js';
 import { Levity } from './Levity.js';
 import { Lightning } from './Lightning.js';
 import { Meteor } from './Meteor.js';
 import { Microwave } from './Microwave.js';
 import { Minefield } from './Minefield.js';
+import { Mosaic } from './Mosaic.js';
 import { Nuke } from './Nuke.js';
 import { Orbital } from './Orbital.js';
 import { Pendulum } from './Pendulum.js';
 import { Piledriver } from './Piledriver.js';
 import { Press } from './Press.js';
+import { Pump } from './Pump.js';
 import { Quake } from './Quake.js';
 import { Railgun } from './Railgun.js';
 import { Repulsor } from './Repulsor.js';
 import { Rocket } from './Rocket.js';
 import { Saw } from './Saw.js';
+import { Shrink } from './Shrink.js';
 import { Shuriken } from './Shuriken.js';
 import { Sonic } from './Sonic.js';
 import { Stomp } from './Stomp.js';
@@ -48,7 +56,9 @@ import { Termites } from './Termites.js';
 import { Tesla } from './Tesla.js';
 import { Tornado } from './Tornado.js';
 import { Tsunami } from './Tsunami.js';
+import { Vines } from './Vines.js';
 import { Volcano } from './Volcano.js';
+import { Whip } from './Whip.js';
 import { WreckingBall } from './WreckingBall.js';
 
 export const ARSENAL = Object.freeze([
@@ -488,6 +498,100 @@ export const ARSENAL = Object.freeze([
     arm: (session) => new Nuke(session.room, session, {
       onImpact: (blow) => session.incinerate(blow, NUKE.embers),
       onLaunch: () => session.sound.cue('whistle'),
+    }),
+  },
+  {
+    key: 'pump',
+    label: '펌프',
+    arm: (session) => new Pump(session.room, session, {
+      onPlug: (x, y) => session.seize(x, y, PUMP.reach, 'plug'),
+      onInflate: (anchor) => session.inflate(anchor),
+      onStroke: (pressure) => session.sound.cue('pump', pressure),
+      onPop: (blow) => session.strike(blow),
+    }),
+  },
+  {
+    key: 'cord',
+    label: '도폭선',
+    arm: (session) => new Cord(session.room, session, {
+      onIgnite: () => session.sound.cue('ignite'),
+      onPop: (rounds) => session.pepper(rounds),
+      onSever: (line) => session.slice(line, false),
+      onCharge: (blow) => session.strike(blow),
+      onSmoke: (x, y) => session.fallout.smolder(x, y, CORD.smoke),
+      onHiss: (cadence) => session.sound.cue('fuse', cadence),
+    }),
+  },
+  {
+    key: 'cutter',
+    label: '쿠키틀',
+    arm: (session) => new Cutter(session.room, {
+      onStamp: (outline) => session.stamp(outline),
+    }),
+  },
+  {
+    key: 'whip',
+    label: '채찍',
+    arm: (session) => new Whip(session.room, session, {
+      onLash: (hit, blade) => session.chop(hit, blade),
+      onCrack: () => session.sound.cue('whipcrack'),
+    }),
+  },
+  {
+    key: 'claw',
+    label: '인형뽑기',
+    arm: (session) => new Claw(session.room, session, {
+      onGrasp: (jaws) => session.grasp(jaws),
+      onSqueeze: (jaws) => session.squeeze(jaws),
+      onTug: (anchor, x, y, dt) => session.tug(anchor, x, y, dt),
+      onHurl: (anchor) => session.hurl(anchor),
+      onWinch: (cadence) => session.sound.cue('winch', cadence),
+    }),
+  },
+  {
+    key: 'lava',
+    label: '용암',
+    arm: (session) => new Lava(session.room, {
+      onEngage: () => session.engage(true),
+      onSweep: (thrust) => session.sweep(thrust, LAVA.heft),
+      onMelt: (surface) => session.immerse(surface),
+      onChurn: (cadence) => session.sound.cue('lava', cadence),
+      onSizzle: (cadence) => session.sound.cue('sizzle', cadence),
+      onBlub: () => session.sound.cue('blub'),
+    }),
+  },
+  {
+    key: 'mosaic',
+    label: '모자이크',
+    arm: (session) => new Mosaic(session.room, {
+      onCensor: (region) => session.censor(region),
+      onGrow: () => session.sound.cue('blip'),
+    }),
+  },
+  {
+    key: 'shrink',
+    label: '축소광선',
+    arm: (session) => new Shrink(session.room, session, {
+      onShrink: (spot) => session.shrink(spot),
+      onHum: (cadence) => session.sound.cue('shrink', cadence),
+    }),
+  },
+  {
+    key: 'vine',
+    label: '덩굴',
+    arm: (session) => new Vines(session.room, session, {
+      onSow: (x, y) => session.seize(x, y, VINE.reach, 'sprout'),
+      onCreep: (shoot) => session.creep(shoot),
+      onRustle: (cadence) => session.sound.cue('rustle', cadence),
+    }),
+  },
+  {
+    key: 'dust',
+    label: '소멸',
+    arm: (session) => new Dust(session.room, {
+      onTouch: (x, y) => session.seize(x, y, DUST.reach, 'sift'),
+      onDisperse: (front) => session.disperse(front),
+      onHush: (cadence) => session.sound.cue('dust', cadence),
     }),
   },
 ]);

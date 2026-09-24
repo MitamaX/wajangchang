@@ -10,6 +10,9 @@ const SHATTER_STEP = 0.1;
 
 const CHIME = Object.freeze({ base: 65, step: 1.12, rise: 1.06, seconds: 1.1, gain: 0.22, cutoff: 600, brighten: 0.25, q: 5, attack: 0.08 });
 const SUSTAIN_OVERLAP = 4;
+const PUMP_STROKE = Object.freeze({ seconds: 0.22, from: [500, 1100], to: [1500, 3400], q: 1.6, gain: 0.22, squeak: [260, 780], rise: 1.2, squeakSeconds: 0.12, squeakGain: 0.05 });
+
+const melody = (frequencies, gap, shape) => frequencies.map((frequency, note) => ({ voice: 'tone', delay: note * gap, frequency, ...shape }));
 
 const SUSTAINS = Object.freeze({
   sizzle: [{ voice: 'wash', frequency: 5000, q: 0.6, gain: 0.1 }],
@@ -69,10 +72,36 @@ const SUSTAINS = Object.freeze({
     { voice: 'swell', frequency: 120, gain: 0.04 },
     { voice: 'wash', frequency: 1800, q: 6, gain: 0.03 },
   ],
+  fuse: [
+    { voice: 'wash', frequency: 3200, q: 1.4, gain: 0.1 },
+    { voice: 'wash', type: 'highpass', frequency: 7500, q: 0.7, gain: 0.05 },
+  ],
+  winch: [
+    { voice: 'swell', type: 'sawtooth', frequency: 110, gain: 0.035 },
+    { voice: 'swell', type: 'square', frequency: 220, gain: 0.012 },
+    { voice: 'wash', frequency: 1400, q: 3, gain: 0.04 },
+  ],
+  lava: [
+    { voice: 'wash', type: 'lowpass', frequency: 220, q: 1.2, gain: 0.3 },
+    { voice: 'swell', frequency: 46, gain: 0.16 },
+    { voice: 'wash', frequency: 520, q: 6, gain: 0.05 },
+  ],
+  shrink: [
+    { voice: 'swell', frequency: 1480, gain: 0.025 },
+    { voice: 'swell', frequency: 1487, gain: 0.025 },
+    { voice: 'swell', type: 'triangle', frequency: 370, gain: 0.02 },
+  ],
+  rustle: [
+    { voice: 'wash', frequency: 4200, q: 0.9, gain: 0.05 },
+    { voice: 'wash', type: 'lowpass', frequency: 700, q: 0.6, gain: 0.04 },
+  ],
+  dust: [
+    { voice: 'wash', type: 'lowpass', frequency: 800, q: 0.5, gain: 0.12 },
+    { voice: 'wash', type: 'highpass', frequency: 6500, q: 0.6, gain: 0.035 },
+  ],
 });
 
 const SKITTER = Object.freeze({ clicks: 10, spread: 0.35, duration: 0.012, frequency: 4200, gain: 0.08 });
-const LOCK = Object.freeze({ beeps: 3, gap: 0.15, duration: 0.08, frequency: 1400, gain: 0.06 });
 
 const CUES = Object.freeze({
   thud: [
@@ -326,6 +355,59 @@ const CUES = Object.freeze({
     { voice: 'hiss', duration: 1.3, type: 'lowpass', frequency: 3200, to: 90, gain: 0.9 },
     { voice: 'hiss', duration: 0.35, type: 'bandpass', frequency: 1400, q: 0.6, gain: 0.5 },
   ],
+  lock: melody([1400, 1400, 1400], 0.15, { duration: 0.08, type: 'square', gain: 0.06, attack: 0.002 }),
+  plug: [
+    { voice: 'tone', duration: 0.05, frequency: 2400, to: 1700, gain: 0.1, attack: 0.001 },
+    { voice: 'hiss', duration: 0.04, type: 'highpass', frequency: 4000, gain: 0.15, attack: 0.001 },
+  ],
+  bang: [
+    { voice: 'hiss', duration: 0.18, type: 'highpass', frequency: 1600, gain: 0.9, attack: 0.001 },
+    { voice: 'tone', duration: 0.35, frequency: 150, to: 45, gain: 1, attack: 0.002 },
+    { voice: 'hiss', duration: 0.6, type: 'lowpass', frequency: 2400, to: 120, gain: 0.7 },
+  ],
+  ignite: [
+    { voice: 'hiss', duration: 0.22, type: 'bandpass', frequency: 1800, to: 5200, q: 1.2, gain: 0.3, attack: 0.01 },
+    { voice: 'hiss', duration: 0.4, type: 'lowpass', frequency: 900, gain: 0.15, attack: 0.05 },
+  ],
+  snap: [
+    { voice: 'hiss', duration: 0.05, type: 'highpass', frequency: 2200, gain: 0.45, attack: 0.001 },
+    { voice: 'tone', duration: 0.12, frequency: 200, to: 70, gain: 0.5, attack: 0.001 },
+    { voice: 'hiss', duration: 0.15, type: 'lowpass', frequency: 1200, gain: 0.3 },
+  ],
+  cutter: [
+    { voice: 'bell', duration: 0.5, frequency: 1250, gain: 0.08 },
+    { voice: 'tone', duration: 0.14, frequency: 240, to: 90, gain: 0.55, attack: 0.002 },
+    { voice: 'hiss', duration: 0.06, type: 'highpass', frequency: 3200, gain: 0.3 },
+  ],
+  lash: [
+    { voice: 'hiss', duration: 0.03, type: 'highpass', frequency: 3500, gain: 0.5, attack: 0.001 },
+    { voice: 'tone', duration: 0.05, frequency: 1400, to: 500, gain: 0.12, attack: 0.001 },
+  ],
+  whipcrack: [
+    { voice: 'hiss', duration: 0.035, type: 'highpass', frequency: 3000, gain: 1, attack: 0.0005 },
+    { voice: 'tone', duration: 0.04, frequency: 2600, to: 700, gain: 0.25, attack: 0.0005 },
+    { voice: 'hiss', duration: 0.12, frequency: 1200, q: 0.7, gain: 0.35, attack: 0.001 },
+  ],
+  clamp: [
+    { voice: 'tone', duration: 0.04, type: 'square', frequency: 900, to: 600, gain: 0.08, attack: 0.001 },
+    { voice: 'bell', duration: 0.35, frequency: 620, gain: 0.1 },
+    { voice: 'hiss', duration: 0.05, type: 'highpass', frequency: 2500, gain: 0.25 },
+  ],
+  jingle: melody([784, 988, 1175, 1568], 0.09, { duration: 0.12, type: 'square', gain: 0.05, attack: 0.003 }),
+  blub: [{ voice: 'tone', duration: 0.07, frequency: 160, to: 520, gain: 0.1, attack: 0.005 }],
+  mosaic: [
+    ...melody([1320, 990, 660], 0.05, { duration: 0.06, type: 'square', gain: 0.06, attack: 0.001 }),
+    { voice: 'hiss', duration: 0.12, type: 'highpass', frequency: 5000, gain: 0.15 },
+  ],
+  blip: [{ voice: 'tone', duration: 0.03, type: 'square', frequency: 1760, gain: 0.04, attack: 0.001 }],
+  sprout: [
+    { voice: 'tone', duration: 0.12, frequency: 300, to: 900, gain: 0.1, attack: 0.005 },
+    { voice: 'hiss', duration: 0.08, frequency: 2500, q: 3, gain: 0.08 },
+  ],
+  sift: [
+    { voice: 'hiss', duration: 0.45, type: 'lowpass', frequency: 1800, to: 300, gain: 0.25, attack: 0.04 },
+    { voice: 'hiss', duration: 0.3, type: 'highpass', frequency: 6000, gain: 0.06, attack: 0.02 },
+  ],
 });
 
 const VOICES = {
@@ -412,6 +494,7 @@ const BITE_RING = 0.6;
 const BORE_RING = 0.35;
 const CRUNCH_LEVEL = 0.8;
 const CHOP_LEVEL = 1;
+const LASH_LEVEL = 0.7;
 
 const chew = (name, part, level) => (synth, t, material) => {
   synth.cue(t, CUES[name]);
@@ -423,9 +506,11 @@ function skitter(synth, t) {
   for (let click = 0; click < clicks; click++) synth.hiss(t + synth.random() * spread, duration, { type: 'highpass', frequency, gain, attack: 0.001 });
 }
 
-function lock(synth, t) {
-  const { beeps, gap, duration, frequency, gain } = LOCK;
-  for (let beep = 0; beep < beeps; beep++) synth.tone(t + beep * gap, duration, { type: 'square', frequency, gain, attack: 0.002 });
+function pump(synth, t, pressure) {
+  const { seconds, from, to, q, gain, squeak, rise, squeakSeconds, squeakGain } = PUMP_STROKE;
+  const pitch = lerp(...squeak, pressure);
+  synth.hiss(t, seconds, { type: 'bandpass', frequency: lerp(...from, pressure), to: lerp(...to, pressure), q, gain, attack: 0.04 });
+  synth.tone(t + seconds / 2, squeakSeconds, { type: 'triangle', frequency: pitch, to: pitch * rise, gain: squeakGain });
 }
 
 const sustain = (name) => (synth, t, cadence) => {
@@ -468,8 +553,15 @@ export const SOUNDS = Object.freeze({
   shield: sustain('shield'),
   rotor: sustain('rotor'),
   gather: sustain('gather'),
+  fuse: sustain('fuse'),
+  winch: sustain('winch'),
+  lava: sustain('lava'),
+  shrink: sustain('shrink'),
+  rustle: sustain('rustle'),
+  dust: sustain('dust'),
   skitter,
-  lock,
+  pump,
+  lock: cue('lock'),
   bore: chew('drilling', 'collide', BORE_RING),
   whine: cue('whine'),
   gunshot: cue('gunshot'),
@@ -526,4 +618,18 @@ export const SOUNDS = Object.freeze({
   plant: cue('plant'),
   tick: cue('tick'),
   explode: cue('explode'),
+  plug: cue('plug'),
+  bang: cue('bang'),
+  ignite: cue('ignite'),
+  snap: cue('snap'),
+  cutter: cue('cutter'),
+  lash: chew('lash', 'strike', LASH_LEVEL),
+  whipcrack: cue('whipcrack'),
+  clamp: cue('clamp'),
+  jingle: cue('jingle'),
+  blub: cue('blub'),
+  mosaic: cue('mosaic'),
+  blip: cue('blip'),
+  sprout: cue('sprout'),
+  sift: cue('sift'),
 });
