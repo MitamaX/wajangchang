@@ -14,7 +14,6 @@ export const SPECIMEN = Object.freeze({
 });
 
 export const VIEW = Object.freeze({
-  frameAspect: 16 / 9,
   floorLine: 0.84,
   subjectHeightShare: 0.5,
   subjectWidthShare: 0.62,

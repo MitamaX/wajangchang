@@ -4,11 +4,15 @@ import { byId } from './dom.js';
 import { Meter } from './Meter.js';
 
 const CARD_SECONDS = 1.5;
+const READING_SECONDS = 1.5;
 
 export class ResultDialog {
   constructor({ onShare, onSave, onContinue }) {
     this.root = byId('result');
+    this.reportFrame = byId('reportFrame');
     this.card = byId('reportCanvas');
+    this.share = byId('share');
+    this.preview = byId('preview');
     this.video = byId('previewVideo');
     this.poster = byId('previewPoster');
     this.render = byId('render');
@@ -19,6 +23,7 @@ export class ResultDialog {
     this.saveLabel = byId('saveLabel');
     this.animation = 0;
     this.stampTimer = 0;
+    this.revealTimer = 0;
     this.url = null;
     this.shareButton.addEventListener('click', onShare);
     this.saveButton.addEventListener('click', onSave);
@@ -35,10 +40,24 @@ export class ResultDialog {
     this.animateCard(report, seal);
     clearTimeout(this.stampTimer);
     this.stampTimer = setTimeout(onStamp, prefersReducedMotion() ? 0 : STAMP_DELAY);
+    clearTimeout(this.revealTimer);
+    this.revealTimer = setTimeout(() => this.reveal(), this.revealDelay);
+  }
+
+  get revealDelay() {
+    const animation = prefersReducedMotion() ? 0 : CARD_SECONDS;
+    return (animation + READING_SECONDS) * 1000;
+  }
+
+  reveal() {
+    this.reportFrame.hidden = true;
+    this.share.hidden = false;
     this.shareButton.focus({ preventScroll: true });
   }
 
   reset() {
+    this.reportFrame.hidden = false;
+    this.share.hidden = true;
     this.releaseVideo();
     this.video.hidden = true;
     this.render.hidden = false;
@@ -67,6 +86,7 @@ export class ResultDialog {
   }
 
   showPoster(canvas) {
+    this.preview.style.setProperty('--preview-aspect', String(canvas.width / canvas.height));
     this.poster.src = canvas.toDataURL('image/jpeg', 0.85);
   }
 
@@ -105,6 +125,7 @@ export class ResultDialog {
   close() {
     cancelAnimationFrame(this.animation);
     clearTimeout(this.stampTimer);
+    clearTimeout(this.revealTimer);
     this.releaseVideo();
     this.root.hidden = true;
   }

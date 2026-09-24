@@ -46,15 +46,18 @@ export class PhysicsWorld {
     this.world.numSolverIterations = SOLVER_ITERATIONS;
     this.events = new RAPIER.EventQueue(true);
     this.backlog = 0;
+    this.ground = null;
     this.buildRoom(halfWidth);
   }
 
   buildRoom(halfWidth) {
+    if (this.ground) this.world.removeRigidBody(this.ground);
     const ground = this.world.createRigidBody(RAPIER.RigidBodyDesc.fixed());
     const slab = (halfX, halfY, x, y, friction) => {
       const description = RAPIER.ColliderDesc.cuboid(halfX, halfY).setTranslation(x, y).setFriction(friction).setCollisionGroups(ROOM_GROUPS);
       this.world.createCollider(description, ground);
     };
+    this.ground = ground;
     slab(halfWidth + SLAB * 2, SLAB, 0, SLAB, FLOOR_FRICTION);
     slab(SLAB, WALL_HEIGHT, -halfWidth - SLAB, SLAB - WALL_HEIGHT, WALL_FRICTION);
     slab(SLAB, WALL_HEIGHT, halfWidth + SLAB, SLAB - WALL_HEIGHT, WALL_FRICTION);

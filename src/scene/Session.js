@@ -112,6 +112,12 @@ export class Session {
     this.tool.active = true;
   }
 
+  refit(aspect) {
+    if (aspect === this.room.aspect) return;
+    this.room.fit(aspect);
+    this.physics.buildRoom(this.room.halfWidth);
+  }
+
   equip(key) {
     const next = this.kit[key];
     const { tool } = this;

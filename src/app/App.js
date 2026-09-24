@@ -1,5 +1,5 @@
 import { SoundBoard } from '../audio/SoundBoard.js';
-import { COMPLETION, RECORDING, VIEW } from '../config.js';
+import { COMPLETION, RECORDING } from '../config.js';
 import { createCanvas } from '../core/canvas.js';
 import { pixelRatio, prefersReducedMotion } from '../core/display.js';
 import { loadFonts } from '../core/fonts.js';
@@ -73,6 +73,7 @@ export class App {
     this.shareFile = null;
     this.viewWidth = 1;
     this.viewHeight = 1;
+    this.frameAspect = 1;
     this.lastFrame = performance.now() / 1000;
     this.carry = 0;
     this.status = new StatusBar();
@@ -149,9 +150,14 @@ export class App {
     this.viewWidth = Math.max(1, bounds.width);
     this.viewHeight = Math.max(1, bounds.height);
     this.renderer.resize(this.viewWidth, this.viewHeight, pixelRatio());
-    const room = this.session ? this.session.room : Room.fitting(PLACEHOLDER_METERS, PLACEHOLDER_METERS);
+    if (this.session && !this.session.started) this.session.refit(this.aspect);
+    const room = this.session ? this.session.room : Room.fitting(PLACEHOLDER_METERS, PLACEHOLDER_METERS, this.aspect);
     this.camera.frame(this.viewWidth, this.viewHeight, room);
     this.renderer.stage(this.camera, room, this.session ? this.session.debris.resting : []);
+  }
+
+  get aspect() {
+    return this.viewWidth / this.viewHeight;
   }
 
   useSample(key) {
@@ -183,7 +189,7 @@ export class App {
     this.reset();
     const material = MATERIALS[materialKey];
     const specimen = Specimen.create(this.subject.source, material);
-    const room = Room.fitting(specimen.widthMeters, specimen.heightMeters);
+    const room = Room.fitting(specimen.widthMeters, specimen.heightMeters, this.aspect);
     this.session = new Session({ specimen, material, room, sound: this.sound, tool: this.toolKey, onEngage: () => this.engage() });
     this.carry = 0;
     this.resize();
@@ -258,7 +264,8 @@ export class App {
   }
 
   startRecording() {
-    this.recorder.begin(VIEW.frameAspect);
+    this.frameAspect = this.camera.aspect;
+    this.recorder.begin(this.frameAspect);
   }
 
   composeField(context, width, height) {
@@ -388,7 +395,7 @@ export class App {
   }
 
   still(outro) {
-    const { width, height } = frameSize(VIEW.frameAspect);
+    const { width, height } = frameSize(this.frameAspect);
     const canvas = createCanvas(width, height);
     const context = canvas.getContext('2d');
     this.composeField(context, width, height);

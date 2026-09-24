@@ -23,16 +23,27 @@ const AXES = { x: 0, y: 1.9, roll: 4.3 };
 const wave = (time, phase) => (Math.sin(time * SHAKE_RATE + phase) + SHAKE_BLEND * Math.sin(time * SHAKE_RATE * SHAKE_HARMONIC + phase * 2.3)) / (1 + SHAKE_BLEND);
 
 export class Room {
-  constructor(halfWidth, height) {
-    this.halfWidth = halfWidth;
-    this.height = height;
-    this.ceiling = height;
+  constructor(subjectWidth, subjectHeight) {
+    this.subjectWidth = subjectWidth;
+    this.subjectHeight = subjectHeight;
+    this.aspect = 1;
+    this.halfWidth = 0;
+    this.height = 0;
+    this.ceiling = 0;
   }
 
-  static fitting(subjectWidth, subjectHeight) {
-    const fit = (width, height) => Math.min(VIEW.subjectHeightShare / height, (VIEW.frameAspect * VIEW.subjectWidthShare) / width);
-    const scale = Math.min(fit(subjectWidth, subjectHeight), fit(REFERENCE_SIDE, REFERENCE_SIDE));
-    return new Room(VIEW.frameAspect / (2 * scale), VIEW.floorLine / scale);
+  static fitting(subjectWidth, subjectHeight, aspect) {
+    return new Room(subjectWidth, subjectHeight).fit(aspect);
+  }
+
+  fit(aspect) {
+    const scaleFor = (width, height) => Math.min(VIEW.subjectHeightShare / height, (aspect * VIEW.subjectWidthShare) / width);
+    const scale = Math.min(scaleFor(this.subjectWidth, this.subjectHeight), scaleFor(REFERENCE_SIDE, REFERENCE_SIDE));
+    this.aspect = aspect;
+    this.halfWidth = aspect / (2 * scale);
+    this.height = VIEW.floorLine / scale;
+    this.ceiling = this.height;
+    return this;
   }
 
   get frameWidth() {
@@ -77,6 +88,10 @@ export class Camera {
     this.originY = this.field.y + height * VIEW.floorLine;
     this.span = Math.min(width, height);
     room.ceiling = this.originY / this.scale;
+  }
+
+  get aspect() {
+    return this.field.width / this.field.height;
   }
 
   impact({ trauma, kick, punch, flash }) {
