@@ -5,7 +5,7 @@ export const FONT = Object.freeze({
   mono: '"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace',
 });
 
-const BASE_GLYPHS = '와장창파기보고서관리대장소월요일알람응답없음재질유리나무돌금속타격소요시간파편균열파괴율판정회개초분년';
+const BASE_GLYPHS = '와장창파기보고서관리대장소월화수목토요일알람응답없음재질유리나무돌금속타격소요시간파편균열파괴율판정회개초분년';
 const DIGITS = '0123456789:.%-m';
 const FACES = [
   '400 64px "Gasoek One"',

@@ -4,7 +4,8 @@ import { TAU, randomBetween } from '../core/math.js';
 
 const DAYS_IN_WEEK = 7;
 const MONDAY = 1;
-const MILLISECONDS_PER_DAY = 86400000;
+const WEEKDAYS = ['월', '화', '수', '목', '금', '토', '일'];
+const PROBE_SIZE = 100;
 
 function nextMonday() {
   const date = new Date();
@@ -14,20 +15,34 @@ function nextMonday() {
   return date;
 }
 
-function isoWeek(date) {
-  const target = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
-  const weekday = target.getUTCDay() || DAYS_IN_WEEK;
-  target.setUTCDate(target.getUTCDate() + 4 - weekday);
-  const yearStart = new Date(Date.UTC(target.getUTCFullYear(), 0, 1));
-  return Math.ceil(((target - yearStart) / MILLISECONDS_PER_DAY + 1) / DAYS_IN_WEEK);
+function fillFitted(g, text, { weight, family, x, y, width, tracking = 0 }) {
+  const glyphs = [...text];
+  g.font = `${weight} ${PROBE_SIZE}px ${family}`;
+  const advances = glyphs.map((glyph) => g.measureText(glyph).width + tracking * PROBE_SIZE);
+  const span = advances.reduce((sum, advance) => sum + advance, 0) - tracking * PROBE_SIZE;
+  const scale = width / span;
+  g.font = `${weight} ${PROBE_SIZE * scale}px ${family}`;
+  g.textAlign = 'left';
+  let cursor = x - width / 2;
+  glyphs.forEach((glyph, i) => {
+    g.fillText(glyph, cursor, y);
+    cursor += advances[i] * scale;
+  });
+}
+
+function inkOffset(box) {
+  return {
+    x: (box.actualBoundingBoxLeft - box.actualBoundingBoxRight) / 2,
+    y: (box.actualBoundingBoxAscent - box.actualBoundingBoxDescent) / 2,
+  };
 }
 
 function drawMonday() {
   const width = 960;
   const height = 1200;
+  const margin = 64;
   const canvas = createCanvas(width, height);
   const g = canvas.getContext('2d');
-  const date = nextMonday();
   g.fillStyle = '#f5f2ea';
   g.fillRect(0, 0, width, height);
   scatterNoise(g, width, height, 0.05, 12000);
@@ -43,34 +58,37 @@ function drawMonday() {
   }
   g.fillStyle = 'rgba(0,0,0,.12)';
   for (let x = 12; x < width; x += 16) g.fillRect(x, 100, 7, 2);
-  g.fillStyle = '#2b2a27';
-  g.textBaseline = 'alphabetic';
-  g.font = `600 44px ${FONT.mono}`;
-  g.textAlign = 'left';
-  g.fillText(String(date.getFullYear()), 64, 186);
-  g.font = `600 44px ${FONT.ui}`;
-  g.textAlign = 'right';
-  g.fillText(`${date.getMonth() + 1}월`, width - 64, 186);
-  g.font = `400 23px ${FONT.mono}`;
-  g.fillStyle = '#7b786f';
-  g.fillText(`WEEK ${String(isoWeek(date)).padStart(2, '0')}`, width - 64, 222);
+  const cell = (width - margin * 2) / WEEKDAYS.length;
+  const weekdayY = 196;
   g.textAlign = 'center';
+  g.textBaseline = 'alphabetic';
+  g.font = `600 34px ${FONT.ui}`;
+  const weekdayBaseline = weekdayY + inkOffset(g.measureText(WEEKDAYS[0])).y;
+  WEEKDAYS.forEach((day, i) => {
+    const x = margin + cell * (i + 0.5);
+    const isMonday = i === 0;
+    if (isMonday) {
+      g.fillStyle = '#9a2a22';
+      g.beginPath();
+      g.arc(x, weekdayY, 42, 0, TAU);
+      g.fill();
+    }
+    g.fillStyle = isMonday ? '#f5f2ea' : '#7b786f';
+    g.fillText(day, x + inkOffset(g.measureText(day)).x, weekdayBaseline);
+  });
+  const lockup = { x: width / 2, width: width - margin * 2 };
   g.fillStyle = '#1c1b19';
-  g.font = `400 470px ${FONT.display}`;
-  g.fillText(String(date.getDate()), width / 2, 668);
-  g.font = `800 132px ${FONT.doc}`;
-  g.fillText('월요일', width / 2, 836);
-  g.font = `600 30px ${FONT.mono}`;
+  fillFitted(g, '월요일', { ...lockup, weight: 400, family: FONT.display, y: 620 });
   g.fillStyle = '#7b786f';
-  g.fillText('M O N D A Y', width / 2, 890);
+  fillFitted(g, 'MONDAY', { ...lockup, weight: 600, family: FONT.ui, y: 800, tracking: 0.45 });
   g.strokeStyle = '#cfcabd';
   g.lineWidth = 2;
   const memo = [['08:30', '출근'], ['09:00', '주간회의 (보고서 지참)'], ['14:00', '거래처 미팅'], ['18:30', '야근 예정']];
   memo.forEach(([time, task], i) => {
     const y = 972 + i * 54;
     g.beginPath();
-    g.moveTo(64, y + 16);
-    g.lineTo(width - 64, y + 16);
+    g.moveTo(margin, y + 16);
+    g.lineTo(width - margin, y + 16);
     g.stroke();
     g.textAlign = 'left';
     g.font = `600 28px ${FONT.mono}`;
