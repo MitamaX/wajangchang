@@ -144,10 +144,6 @@ const CUES = Object.freeze({
     { voice: 'bell', duration: 0.5, frequency: 2100, gain: 0.05, delay: 0.02 },
     { voice: 'hiss', duration: 0.7, type: 'lowpass', frequency: 700, to: 90, gain: 0.35, delay: 0.03 },
   ],
-  swing: [
-    { voice: 'hiss', duration: 0.22, type: 'bandpass', frequency: 380, to: 2400, q: 1.4, gain: 0.38, attack: 0.16 },
-    { voice: 'tone', duration: 0.22, frequency: 70, to: 140, gain: 0.12, attack: 0.16 },
-  ],
   gong: [
     { voice: 'tone', duration: 0.5, frequency: 80, to: 32, gain: 1, attack: 0.002 },
     { voice: 'hiss', duration: 0.3, type: 'lowpass', frequency: 1600, gain: 0.7 },
@@ -337,7 +333,6 @@ export const SOUNDS = Object.freeze({
   whistle: cue('whistle'),
   pop: cue('pop'),
   punch,
-  swing: cue('swing'),
   gong: cue('gong'),
   latch: cue('latch'),
   pass: sweep,

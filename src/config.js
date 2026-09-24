@@ -170,7 +170,7 @@ export const GUN = Object.freeze({
   recovery: 0.7,
   spin: 40,
   spool: 7,
-  tracerSpeed: 24,
+  tracerSpeed: 40,
   riseSeconds: 0.18,
   motorSeconds: 0.12,
   smokeSeconds: 0.06,
@@ -277,13 +277,8 @@ export const BLACKHOLE = Object.freeze({
 });
 
 export const FIST = Object.freeze({
-  windSeconds: 0.16,
-  punchSeconds: 0.08,
-  holdSeconds: 0.09,
-  returnSeconds: 0.3,
   crackSeconds: 1.2,
   size: 0.1,
-  approach: 2.6,
   blow: Object.freeze({
     normalX: 0,
     normalY: 1,
@@ -296,7 +291,7 @@ export const FIST = Object.freeze({
     burst: 2.4,
     contact: 0.025,
     blast: Object.freeze({ reach: 0.38, speed: 4.5, heft: 0.35 }),
-    force: 0.9,
+    force: 0.5,
     cue: 'punch',
   }),
 });

@@ -99,7 +99,6 @@ export const ARSENAL = Object.freeze([
     label: '주먹',
     arm: (session) => new Fist(session.room, {
       onPunch: (blow) => session.strike(blow),
-      onSwing: () => session.sound.cue('swing'),
     }),
   },
   {
