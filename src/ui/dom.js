@@ -15,6 +15,7 @@ export function chipButton({ key, label }) {
   button.type = 'button';
   button.className = 'chip';
   button.dataset.key = key;
+  button.setAttribute('aria-pressed', 'false');
   button.textContent = label;
   return button;
 }

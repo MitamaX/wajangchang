@@ -55,7 +55,6 @@ export class Session {
     this.kit = Object.fromEntries(ARSENAL.map(({ key, arm }) => [key, arm(this)]));
     this.tools = Object.values(this.kit);
     this.tool = this.kit[tool];
-    this.tool.active = true;
     this.fragments = [];
     this.stats = { strikes: 0, crackCells: 0 };
     this.clock = 0;
@@ -109,15 +108,19 @@ export class Session {
     this.tools.forEach((tool) => tool.stow());
   }
 
+  wield() {
+    this.tool.active = true;
+  }
+
   equip(key) {
     const next = this.kit[key];
     const { tool } = this;
     if (next === tool) return;
-    const { present, aimX, aimY } = tool;
+    const { active, present, aimX, aimY } = tool;
     tool.cancel();
     tool.withdraw();
     tool.active = false;
-    next.active = true;
+    next.active = active;
     this.tool = next;
     if (present) next.aim(aimX, aimY);
   }

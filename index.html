@@ -10,12 +10,12 @@
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Gasoek+One&family=IBM+Plex+Mono:wght@500;600&family=IBM+Plex+Sans+KR:wght@400;500;600;700&family=Nanum+Myeongjo:wght@700;800&display=swap">
   </head>
   <body>
-    <div class="app">
+    <div class="app" id="app" data-phase="setup">
       <header class="top">
         <h1 class="wordmark">와장창</h1>
       </header>
 
-      <div class="status">
+      <div class="status hud">
         <label class="target" for="targetName"><span class="label">대상</span><input id="targetName" type="text" maxlength="20" autocomplete="off" spellcheck="false"></label>
         <span class="tag" id="materialTag" hidden></span>
         <div class="meter" id="meter" role="progressbar" aria-label="파괴율" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><div class="meter-fill" id="meterFill"></div></div>
@@ -24,7 +24,7 @@
       </div>
 
       <main class="work">
-        <nav class="rack" id="rack" aria-label="도구">
+        <nav class="rack hud" id="rack" aria-label="도구">
           <button class="rack-arrow" id="rackPrev" type="button" aria-label="이전">
             <svg viewBox="0 0 10 28" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 3 2 14l6 11"/></svg>
           </button>
@@ -33,10 +33,34 @@
             <svg viewBox="0 0 10 28" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m2 3 6 11-6 11"/></svg>
           </button>
         </nav>
+        <div class="setup" id="setup" hidden>
+          <section class="setup-step" id="imageStep" aria-labelledby="imageStepLabel">
+            <span class="label" id="imageStepLabel">이미지</span>
+            <div class="chip-grid" role="group" aria-labelledby="imageStepLabel">
+              <button class="chip" id="setupUpload" type="button" data-key="upload" aria-pressed="false">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 15V4M7.5 8.5 12 4l4.5 4.5"/><path d="M4 14v4a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-4"/></svg>
+                <span>올리기</span>
+              </button>
+            </div>
+            <div class="setup-actions">
+              <button class="btn btn-accent btn-large" id="nextButton" type="button">다음</button>
+            </div>
+          </section>
+          <section class="setup-step" id="materialStep" aria-labelledby="materialStepLabel" inert>
+            <span class="label" id="materialStepLabel">재질</span>
+            <div class="tile-row" id="materials" role="group" aria-labelledby="materialStepLabel"></div>
+            <div class="setup-actions">
+              <button class="btn btn-ghost btn-large" id="backButton" type="button" aria-label="이전">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5 8 12l7 7"/></svg>
+              </button>
+              <button class="btn btn-accent btn-large" id="startButton" type="button">시작!</button>
+            </div>
+          </section>
+        </div>
         <section class="stage-wrap" id="stageWrap">
           <canvas id="stage" tabindex="0" aria-label="부수기 판"></canvas>
           <div class="stage-controls">
-            <button class="btn btn-ghost" id="pauseButton" type="button" disabled>
+            <button class="btn btn-ghost hud" id="pauseButton" type="button" disabled>
               <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><rect x="6" y="5" width="4" height="14" rx="1"/><rect x="14" y="5" width="4" height="14" rx="1"/></svg>
               <span>일시정지</span>
             </button>
@@ -44,26 +68,6 @@
               <svg class="sound-on" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 5 6.5 9H3v6h3.5L11 19z" fill="currentColor" fill-opacity=".2"/><path d="M15.5 8.5a5 5 0 0 1 0 7M18.5 5.5a9 9 0 0 1 0 13"/></svg>
               <svg class="sound-off" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 5 6.5 9H3v6h3.5L11 19z" fill="currentColor" fill-opacity=".2"/><path d="M16 9.5l5 5M21 9.5l-5 5"/></svg>
             </button>
-          </div>
-          <div class="setup" id="setup" hidden>
-            <section class="setup-side">
-              <span class="label">이미지</span>
-              <div class="setup-source">
-                <img class="setup-thumb" id="setupThumb" alt="">
-                <div class="setup-picks">
-                  <button class="btn btn-accent btn-compact" id="setupUpload" type="button">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 15V4M7.5 8.5 12 4l4.5 4.5"/><path d="M4 14v4a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-4"/></svg>
-                    <span>이미지 올리기</span>
-                  </button>
-                  <div class="chip-row" id="samples" role="group" aria-label="예시"></div>
-                </div>
-              </div>
-            </section>
-            <section class="setup-side">
-              <span class="label">재질</span>
-              <div class="tile-row" id="materials" role="group" aria-label="재질"></div>
-              <button class="btn btn-accent btn-large" id="startButton" type="button">시작!</button>
-            </section>
           </div>
           <div class="progress loader" id="loader">
             <span class="label">불러오는 중</span>

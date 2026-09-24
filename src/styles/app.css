@@ -21,7 +21,6 @@
   --f-ui: "IBM Plex Sans KR", "Apple SD Gothic Neo", "Malgun Gothic", "Noto Sans KR", system-ui, sans-serif;
   --f-mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
   --control: 40px;
-  --control-compact: 32px;
   --control-large: 56px;
   --divider: #2c2f34;
   --radius-control: 8px;
@@ -32,7 +31,6 @@
   --tile-width: 76px;
   --rack-gap: 6px;
   --rack-arrow: 14px;
-  --chip-width: 92px;
   --icon: 18px;
   --tile-icon: 28px;
   --tape-tile: 28.28px;
@@ -179,12 +177,6 @@ button {
   background: #fff;
 }
 
-.btn-compact {
-  height: var(--control-compact);
-  padding-inline: 12px;
-  font-size: 13px;
-}
-
 .btn-large {
   height: var(--control-large);
   padding-inline: 22px;
@@ -218,6 +210,10 @@ button {
 
 .icon-btn[aria-pressed="false"] .sound-on,
 .icon-btn[aria-pressed="true"] .sound-off {
+  display: none;
+}
+
+.app[data-phase="setup"] .hud {
   display: none;
 }
 
@@ -330,12 +326,12 @@ button {
 .work {
   flex: 1;
   min-height: 0;
-  display: grid;
-  grid-template-columns: calc(var(--tile-width) + 18px) minmax(0, 1fr);
+  display: flex;
   gap: 12px;
 }
 
 .rack {
+  flex: none;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -441,10 +437,9 @@ button {
   color: rgba(23, 21, 14, 0.6);
 }
 
-.chip-row {
+.chip-grid {
   display: grid;
-  grid-auto-flow: column;
-  grid-auto-columns: var(--chip-width);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 8px;
 }
 
@@ -456,6 +451,8 @@ button {
 
 .stage-wrap {
   position: relative;
+  flex: 1;
+  min-width: 0;
   min-height: 0;
   border-radius: var(--radius-panel);
   overflow: hidden;
@@ -488,68 +485,77 @@ button {
 }
 
 .setup {
-  position: absolute;
-  left: 50%;
-  bottom: var(--gutter);
-  transform: translateX(-50%);
-  width: min(880px, calc(100% - 2 * var(--gutter)));
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  border-radius: var(--radius-panel);
-  background: var(--veil);
-  border: 1px solid #3a3e44;
-  box-shadow: var(--shadow-panel);
-  backdrop-filter: blur(6px);
-  -webkit-backdrop-filter: blur(6px);
-}
-
-.setup-side {
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  padding: 16px 18px;
-}
-
-.setup-side + .setup-side {
-  border-left: 1px solid var(--divider);
-}
-
-.setup-source {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-}
-
-.setup-thumb {
-  width: 112px;
-  height: 112px;
+  --step-shift: 24px;
+  --step-time: 0.22s;
   flex: none;
-  object-fit: cover;
-  border-radius: var(--radius-control);
+  align-self: flex-start;
+  display: grid;
+  grid-template-columns: minmax(0, max-content);
+  justify-content: center;
+  overflow: hidden;
+  border-radius: var(--radius-panel);
   border: 1px solid var(--line);
+  background: var(--chrome);
 }
 
-.setup-picks {
+.setup-step {
+  grid-area: 1 / 1;
   min-width: 0;
   display: flex;
   flex-direction: column;
+  gap: 12px;
+  padding: 16px 18px 18px;
+  transition: opacity var(--step-time), transform var(--step-time);
+}
+
+.setup-step[inert] {
+  opacity: 0;
+  visibility: hidden;
+  transform: translateX(var(--step-shift));
+  transition: opacity var(--step-time), transform var(--step-time), visibility 0s var(--step-time);
+}
+
+.setup-step[inert]:has(~ .setup-step:not([inert])) {
+  transform: translateX(calc(-1 * var(--step-shift)));
+}
+
+.setup-actions {
+  display: flex;
   gap: 8px;
+  margin-top: auto;
+}
+
+.setup-actions .btn-ghost {
+  width: var(--tile-width);
+  padding-inline: 0;
+}
+
+.setup-actions .btn-accent {
+  flex: 1;
 }
 
 .chip {
-  height: var(--control-compact);
-  padding-inline: 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: var(--control);
+  padding-inline: 10px;
   border-radius: var(--radius-control);
   border: 1px solid #4a4f56;
   background: transparent;
-  font-size: 13px;
   font-weight: 500;
   white-space: nowrap;
 }
 
+.chip svg {
+  width: var(--icon);
+  height: var(--icon);
+  flex: none;
+}
+
 .chip:hover,
-.chip[aria-current="true"] {
+.chip[aria-pressed="true"] {
   border-color: var(--hazard);
   color: var(--hazard);
 }
@@ -717,15 +723,22 @@ button {
   text-align: center;
 }
 
-@media (max-width: 900px) {
+@media (max-width: 900px) and (orientation: portrait) {
   .work {
-    grid-template-columns: minmax(0, 1fr);
-    grid-template-rows: minmax(0, 1fr) auto;
+    flex-direction: column;
     gap: 8px;
   }
 
-  .rack {
+  .rack,
+  .setup {
     order: 2;
+  }
+
+  .setup {
+    align-self: stretch;
+  }
+
+  .rack {
     flex-direction: row;
     justify-content: center;
     padding: 6px;
@@ -750,7 +763,9 @@ button {
   .rack-arrow {
     display: block;
   }
+}
 
+@media (max-width: 900px) {
   .tile kbd {
     display: none;
   }
@@ -833,25 +848,6 @@ button {
   .timer {
     display: none;
   }
-
-  .setup {
-    top: calc(var(--control) + 20px);
-    bottom: auto;
-    grid-template-columns: minmax(0, 1fr);
-  }
-
-  .setup-side {
-    padding: 12px;
-  }
-
-  .setup-side + .setup-side {
-    border-left: 0;
-    border-top: 1px solid var(--divider);
-  }
-
-  .setup-thumb {
-    display: none;
-  }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -865,6 +861,10 @@ button {
 
   .toast {
     transition: none;
+  }
+
+  .setup {
+    --step-time: 0s;
   }
 
   .rack-tiles {

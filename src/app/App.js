@@ -3,7 +3,6 @@ import { COMPLETION, RECORDING, VIEW } from '../config.js';
 import { createCanvas } from '../core/canvas.js';
 import { pixelRatio, prefersReducedMotion } from '../core/display.js';
 import { loadFonts } from '../core/fonts.js';
-import { coverThumbnail } from '../core/images.js';
 import { fileSafe } from '../core/naming.js';
 import { MATERIALS } from '../destruction/materials.js';
 import { Specimen } from '../destruction/Specimen.js';
@@ -28,7 +27,6 @@ import { Toast } from '../ui/Toast.js';
 import { ToolRack } from '../ui/ToolRack.js';
 
 const MAX_FRAME_SECONDS = 0.05;
-const THUMB_SIZE = 220;
 const PLACEHOLDER_METERS = 0.6;
 const DEFAULT_SAMPLE = 'monday';
 const DEFAULT_MATERIAL = 'glass';
@@ -56,6 +54,7 @@ function pngFile(canvas, name) {
 
 export class App {
   constructor() {
+    this.root = byId('app');
     this.canvas = byId('stage');
     this.wrap = byId('stageWrap');
     this.renderer = new Renderer(this.canvas, byId('spill'));
@@ -114,6 +113,7 @@ export class App {
     new ResizeObserver(() => this.resize()).observe(this.wrap);
     this.resize();
     this.useSample(DEFAULT_SAMPLE);
+    this.setup.present();
     loadFonts().then(() => {
       if (this.phase === Phase.SETUP && this.subject && this.subject.sampleKey) this.useSample(this.subject.sampleKey);
     });
@@ -160,14 +160,15 @@ export class App {
   }
 
   useImage(source, name, sampleKey) {
-    this.subject = { source, name, sampleKey, thumb: coverThumbnail(source, THUMB_SIZE) };
+    this.subject = { source, name, sampleKey };
     this.status.name = name;
-    this.ready();
+    this.setup.selectImage(sampleKey);
+    this.prepare(this.materialKey);
   }
 
   ready() {
-    this.setup.present(this.subject.thumb, this.subject.sampleKey);
     this.prepare(this.materialKey);
+    this.setup.present();
   }
 
   byUser(action) {
@@ -187,13 +188,14 @@ export class App {
     this.carry = 0;
     this.resize();
     this.status.material = material.label;
-    this.setup.select(materialKey);
+    this.setup.selectMaterial(materialKey);
   }
 
   start() {
     if (this.phase !== Phase.SETUP || !this.session) return;
     this.sound.unlock();
     this.setup.hide();
+    this.session.wield();
     this.enter(Phase.PLAYING);
     this.canvas.focus({ preventScroll: true });
   }
@@ -217,6 +219,7 @@ export class App {
 
   enter(phase) {
     this.phase = phase;
+    this.root.dataset.phase = phase;
     this.pauseButton.disabled = !PAUSABLE.has(phase);
   }
 
