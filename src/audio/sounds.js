@@ -67,10 +67,17 @@ const CUES = Object.freeze({
     { voice: 'bell', duration: 0.6, frequency: 220, gain: 0.12 },
     { voice: 'hiss', duration: 0.2, type: 'lowpass', frequency: 1200, gain: 0.5 },
   ],
-  roar: [
-    { voice: 'hiss', duration: 0.2, type: 'lowpass', frequency: 900, to: 600, gain: 0.25, attack: 0.03 },
-    { voice: 'hiss', duration: 0.2, type: 'bandpass', frequency: 2500, q: 0.7, gain: 0.08, attack: 0.03 },
+  ignite: [
+    { voice: 'tone', duration: 0.35, frequency: 120, to: 40, gain: 0.8, attack: 0.004 },
+    { voice: 'hiss', duration: 0.45, type: 'lowpass', frequency: 300, to: 2400, gain: 0.7, attack: 0.01 },
+    { voice: 'hiss', duration: 0.12, type: 'highpass', frequency: 3000, gain: 0.25 },
   ],
+  roar: [
+    { voice: 'hiss', duration: 0.22, type: 'lowpass', frequency: 1400, to: 900, gain: 0.45, attack: 0.03 },
+    { voice: 'hiss', duration: 0.22, type: 'bandpass', frequency: 320, q: 1.2, gain: 0.5, attack: 0.03 },
+    { voice: 'tone', duration: 0.22, type: 'sawtooth', frequency: 48, gain: 0.06, attack: 0.03 },
+  ],
+  sizzle: [{ voice: 'hiss', duration: 0.18, type: 'highpass', frequency: 4000, gain: 0.18, attack: 0.02 }],
   explode: [
     { voice: 'tone', duration: 1.1, frequency: 75, to: 24, gain: 1, attack: 0.003 },
     { voice: 'hiss', duration: 1.3, type: 'lowpass', frequency: 3200, to: 90, gain: 0.9 },
@@ -160,6 +167,7 @@ const voice = (part, level) => (synth, t, material, amount) => VOICES[material][
 const voiceLevel = (amount) => clamp(amount, ...VOICE_LEVEL);
 const BITE_RING = 0.6;
 const CRUNCH_LEVEL = 0.8;
+const SEAR_LEVEL = 0.4;
 
 function bite(synth, t, material) {
   synth.cue(t, CUES.rip);
@@ -169,6 +177,11 @@ function bite(synth, t, material) {
 function crunch(synth, t, material) {
   synth.cue(t, CUES.grind);
   VOICES[material].crack(synth, t, CRUNCH_LEVEL);
+}
+
+function sear(synth, t, material) {
+  synth.cue(t, CUES.sizzle);
+  VOICES[material].crack(synth, t, SEAR_LEVEL);
 }
 
 function chime(synth, t, tier, final) {
@@ -190,8 +203,10 @@ export const SOUNDS = Object.freeze({
   whir: cue('whir'),
   slash: cue('slash'),
   crunch,
+  sear,
   hum: cue('hum'),
   clank: cue('clank'),
+  ignite: cue('ignite'),
   roar: cue('roar'),
   sever: cue('sever'),
   thud: cue('thud'),

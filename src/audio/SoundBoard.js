@@ -119,8 +119,16 @@ export class SoundBoard {
     this.emit('clank');
   }
 
+  ignite() {
+    this.emit('ignite');
+  }
+
   roar() {
     this.emit('roar');
+  }
+
+  sear(material) {
+    this.emit('sear', material);
   }
 
   hum() {

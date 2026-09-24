@@ -42,7 +42,7 @@ const TOOLS = [
   { key: 'saw', label: '톱날', icon: ICONS.saw, shortcut: '3' },
   { key: 'katana', label: '참격', icon: ICONS.katana, shortcut: '4' },
   { key: 'press', label: '프레스', icon: ICONS.press, shortcut: '5' },
-  { key: 'flame', label: '화염방사기', icon: ICONS.flame, shortcut: '6' },
+  { key: 'flame', label: '화염', icon: ICONS.flame, shortcut: '6' },
 ];
 
 const Phase = Object.freeze({ SETUP: 'setup', PLAYING: 'playing', PAUSED: 'paused', SETTLING: 'settling', DONE: 'done' });

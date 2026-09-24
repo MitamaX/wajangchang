@@ -10,7 +10,7 @@ import { PhysicsWorld } from '../physics/PhysicsWorld.js';
 import { Bomber } from './Bomber.js';
 import { Debris } from './Debris.js';
 import { Fallout } from './Fallout.js';
-import { Flamethrower } from './Flamethrower.js';
+import { Flame } from './Flame.js';
 import { Hammer } from './Hammer.js';
 import { ImpactLedger } from './ImpactLedger.js';
 import { Katana } from './Katana.js';
@@ -36,6 +36,13 @@ const shockOf = (force, contact) => Object.fromEntries(
   Object.entries(IMPACT).map(([key, [tap, full]]) => [key, lerp(contact ? tap : 0, full, force)]),
 );
 
+const heftOf = (body, minimum) => clamp(SHOCKWAVE.referenceMass / body.mass(), minimum, 1);
+
+function nudge(body, dx, dy) {
+  const velocity = body.linvel();
+  body.setLinvel({ x: velocity.x + dx, y: velocity.y + dy }, true);
+}
+
 export class Session {
   constructor({ specimen, material, room, sound, tool, onEngage }) {
     this.specimen = specimen;
@@ -57,7 +64,7 @@ export class Session {
       saw: new Saw(room, { onGrind: (cut) => this.grind(cut), onWhir: () => sound.whir() }),
       katana: new Katana(room, { onSlash: (line) => this.slash(line), onSever: (marks) => this.sever(marks) }),
       press: new Press(room, { onCrush: (stroke) => this.crush(stroke), onLand: (x) => this.land(x), onHum: () => sound.hum() }),
-      flame: new Flamethrower(room, { onScorch: (jet) => this.scorch(jet), onRoar: () => sound.roar() }),
+      flame: new Flame(room, { onIgnite: () => this.ignite(), onScorch: (jet) => this.scorch(jet), onRoar: (searing) => this.roar(searing) }),
     };
     this.tools = Object.values(this.kit);
     this.tool = this.kit[tool];
@@ -247,9 +254,8 @@ export class Session {
       const center = body.worldCom();
       const push = thrust(center.x, center.y);
       if (!push) return;
-      const heft = clamp(SHOCKWAVE.referenceMass / body.mass(), minimumHeft, 1);
-      const velocity = body.linvel();
-      body.setLinvel({ x: velocity.x + push[0] * heft, y: velocity.y + push[1] * heft }, true);
+      const heft = heftOf(body, minimumHeft);
+      nudge(body, push[0] * heft, push[1] * heft);
       body.setAngvel(body.angvel() + randomBetween(-SHOCK_SPIN, SHOCK_SPIN) * Math.hypot(...push) * heft, true);
     });
     this.debris.stir(thrust);
@@ -343,11 +349,10 @@ export class Session {
 
   drive({ body }, [alongX, alongY], [intoX, intoY], kickback) {
     if (this.frozen) return;
-    const heft = clamp(SHOCKWAVE.referenceMass / body.mass(), SAW.heft, 1);
+    const heft = heftOf(body, SAW.heft);
     const along = SAW.drive * heft;
     const shove = SAW.shove * kickback * heft;
-    const velocity = body.linvel();
-    body.setLinvel({ x: velocity.x + alongX * along + intoX * shove, y: velocity.y + alongY * along + intoY * shove }, true);
+    nudge(body, alongX * along + intoX * shove, alongY * along + intoY * shove);
   }
 
   slash(line) {
@@ -406,8 +411,7 @@ export class Session {
     pieces.forEach(({ body }) => {
       const center = body.worldCom();
       const side = Math.sign((center.x - ax) * normalX + (center.y - ay) * normalY) || 1;
-      const velocity = body.linvel();
-      body.setLinvel({ x: velocity.x + normalX * side * KATANA.part, y: velocity.y + normalY * side * KATANA.part - KATANA.lift }, true);
+      nudge(body, normalX * side * KATANA.part, normalY * side * KATANA.part - KATANA.lift);
       body.setAngvel(body.angvel() + side * randomBetween(0, KATANA.spin), true);
     });
   }
@@ -544,23 +548,46 @@ export class Session {
     return { x, y: bottom, burst: PRESS.burst, strength, aim: (center) => normalize(Math.sign(center.x - x) || 1, -PRESS.squeeze) };
   }
 
+  ignite() {
+    this.sound.ignite();
+    this.shock = FLAME.igniteShock;
+  }
+
+  roar(searing) {
+    this.sound.roar();
+    if (searing) this.sound.sear(this.material.key);
+  }
+
   scorch(jet) {
     const hit = this.probe(jet);
     if (!hit) return null;
     if (!this.started) this.onEngage();
     if (jet.first) this.stats.strikes++;
     const { fragment, point } = hit;
-    const [normalX, normalY] = normalize(jet.bx - jet.ax, jet.by - jet.ay);
+    const heading = normalize(jet.bx - jet.ax, jet.by - jet.ay);
     const { fire } = this.material;
     const [cellX, cellY] = fragment.toCell(point.x, point.y);
-    fragment.skin.scorch(cellX, cellY, FLAME.scorch / CELL_METERS, fire.char);
-    const burnt = this.fracture.carve(fragment.grid, { x: cellX, y: cellY, radius: fire.burn });
-    const heated = this.hitFragment(fragment, { ...point, normalX, normalY, strength: fire.strength }, 'blow');
+    fragment.skin.scorch(cellX, cellY, fire.burn * FLAME.charReach, fire.char);
+    const heated = this.hitFragment(fragment, { ...point, normalX: heading[0], normalY: heading[1], strength: fire.strength }, 'blow');
+    this.melt(fragment, this.fracture.carve(fragment.grid, { x: cellX, y: cellY, radius: fire.burn }), point);
     this.fallout.impact(point.x, point.y, fire.strength, this.paletteOf(fragment, heated.point), 1);
     this.fallout.smolder(point.x, point.y, FLAME.smoke);
+    this.propel(fragment, heading);
     this.shock = FLAME.shock;
-    this.apply(fragment, [burnt, heated], { x: point.x, y: point.y, burst: 0, strength: fire.strength });
+    this.apply(fragment, [heated], { x: point.x, y: point.y, ...FLAME.blowout, aim: () => heading });
     return point;
+  }
+
+  melt(fragment, molten, { x, y }) {
+    if (!molten.changed) return;
+    fragment.reshaped = true;
+    this.fallout.melt(x, y, molten.removed.length, this.material.fire.ember);
+  }
+
+  propel({ body }, [alongX, alongY]) {
+    if (this.frozen) return;
+    const thrust = FLAME.thrust * heftOf(body, FLAME.heft);
+    nudge(body, alongX * thrust, alongY * thrust);
   }
 
   probe({ ax, ay, bx, by }) {
@@ -671,8 +698,7 @@ export class Session {
       const falloff = 1 - distance / reach;
       const speed = FRAGMENTS.burstSpeed * burst * root * falloff * randomBetween(0.5, 1.2);
       const lift = aim ? 0 : FRAGMENTS.burstLift * burst * falloff;
-      const velocity = piece.body.linvel();
-      piece.body.setLinvel({ x: velocity.x + dx * speed, y: velocity.y + dy * speed - lift }, true);
+      nudge(piece.body, dx * speed, dy * speed - lift);
       piece.body.setAngvel(piece.body.angvel() + randomBetween(-1, 1) * FRAGMENTS.burstSpin * burst * falloff, true);
     }
   }
