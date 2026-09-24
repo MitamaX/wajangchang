@@ -3,6 +3,7 @@ export const FONT = Object.freeze({
   ui: '"IBM Plex Sans KR","Apple SD Gothic Neo","Malgun Gothic","Noto Sans KR",sans-serif',
   doc: '"Nanum Myeongjo","AppleMyungjo","Batang","Noto Serif KR",serif',
   mono: '"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace',
+  system: '"Segoe UI","Malgun Gothic","Apple SD Gothic Neo","Noto Sans KR",sans-serif',
 });
 
 const BASE_GLYPHS = '와장창파기보고서관리대장소월화수목토요일알람응답없음재질유리나무돌금속타격소요시간파편균열파괴율판정회개초분년';

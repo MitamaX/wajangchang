@@ -1,11 +1,12 @@
 import { createCanvas, scatterNoise, traceRoundRect } from '../core/canvas.js';
 import { FONT } from '../core/fonts.js';
-import { TAU, randomBetween } from '../core/math.js';
+import { TAU } from '../core/math.js';
 
 const DAYS_IN_WEEK = 7;
 const MONDAY = 1;
 const WEEKDAYS = ['월', '화', '수', '목', '금', '토', '일'];
 const PROBE_SIZE = 100;
+const QR = Object.freeze({ modules: 21, finder: 7, quiet: 1 });
 
 function nextMonday() {
   const date = new Date();
@@ -163,93 +164,69 @@ function drawAlarm() {
   return canvas;
 }
 
+function qrFinderInk(col, row) {
+  const far = QR.modules - QR.finder;
+  const half = (QR.finder - 1) / 2;
+  const corners = [[0, 0], [far, 0], [0, far]];
+  for (const [left, top] of corners) {
+    const ring = Math.max(Math.abs(col - left - half), Math.abs(row - top - half));
+    if (ring <= half + 1) return ring !== half - 1 && ring !== half + 1;
+  }
+  return null;
+}
+
+function qrModuleInk(col, row) {
+  const finder = qrFinderInk(col, row);
+  if (finder !== null) return finder;
+  const timing = QR.finder - 1;
+  if (col === timing || row === timing) return (col + row) % 2 === 0;
+  return Math.random() < 0.5;
+}
+
+function paintQr(g, x, y, cell, ink) {
+  const span = (QR.modules + QR.quiet * 2) * cell;
+  g.fillStyle = '#ffffff';
+  g.fillRect(x, y, span, span);
+  g.fillStyle = ink;
+  for (let row = 0; row < QR.modules; row++) {
+    for (let col = 0; col < QR.modules; col++) {
+      if (qrModuleInk(col, row)) g.fillRect(x + (col + QR.quiet) * cell, y + (row + QR.quiet) * cell, cell, cell);
+    }
+  }
+  return span;
+}
+
+function fillLines(g, lines, x, y, leading) {
+  lines.forEach((line, i) => g.fillText(line, x, y + i * leading));
+}
+
 function drawFreeze() {
   const width = 1280;
-  const height = 860;
+  const height = 800;
+  const margin = 120;
+  const gutter = 80;
+  const blue = '#0078d7';
   const canvas = createCanvas(width, height);
   const g = canvas.getContext('2d');
-  const backdrop = g.createLinearGradient(0, 0, width, height);
-  backdrop.addColorStop(0, '#2f6e86');
-  backdrop.addColorStop(1, '#1d4658');
-  g.fillStyle = backdrop;
+  g.fillStyle = blue;
   g.fillRect(0, 0, width, height);
-  const windowX = 70;
-  const windowY = 60;
-  const windowWidth = width - 140;
-  const windowHeight = height - 120;
-  g.fillStyle = 'rgba(0,0,0,.35)';
-  traceRoundRect(g, windowX + 6, windowY + 12, windowWidth, windowHeight, 10);
-  g.fill();
-  g.fillStyle = '#fafafa';
-  traceRoundRect(g, windowX, windowY, windowWidth, windowHeight, 10);
-  g.fill();
-  g.save();
-  traceRoundRect(g, windowX, windowY, windowWidth, 58, 10);
-  g.clip();
-  g.fillStyle = '#e6e8ea';
-  g.fillRect(windowX, windowY, windowWidth, 58);
-  g.restore();
-  g.fillStyle = '#2b2f33';
-  g.font = `500 25px ${FONT.ui}`;
+  g.fillStyle = '#ffffff';
   g.textAlign = 'left';
-  g.fillText('보고서_최종_진짜최종(3).hwp (응답 없음)', windowX + 24, windowY + 38);
-  g.fillStyle = '#6e7479';
-  g.textAlign = 'right';
-  g.fillText('—   ☐   ✕', windowX + windowWidth - 24, windowY + 38);
-  g.fillStyle = '#f1f2f3';
-  g.fillRect(windowX, windowY + 58, windowWidth, 44);
-  g.fillStyle = '#c9cdd1';
-  for (let i = 0; i < 12; i++) g.fillRect(windowX + 24 + i * 58, windowY + 70, 38, 20);
+  g.textBaseline = 'alphabetic';
+  g.font = `300 400px ${FONT.system}`;
+  const face = g.measureText(':(');
+  const faceX = margin + face.actualBoundingBoxLeft;
+  g.fillText(':(', faceX, 300 + inkOffset(face).y);
+  const textX = faceX + face.actualBoundingBoxRight + gutter;
+  const top = 210;
+  g.font = `300 40px ${FONT.system}`;
+  fillLines(g, ['PC에 문제가 발생하여 다시 시작해야 합니다.', '오류 정보를 수집하고 있으며,', '자동으로 다시 시작됩니다.'], textX, top, 58);
+  g.fillText('20% 완료', textX, top + 200);
+  const qrTop = 580;
+  const qrSpan = paintQr(g, margin, qrTop, 5, blue);
   g.fillStyle = '#ffffff';
-  g.fillRect(windowX + 170, windowY + 124, windowWidth - 340, windowHeight - 140);
-  g.fillStyle = '#d5d8db';
-  for (let i = 0; i < 13; i++) {
-    const lineWidth = (windowWidth - 420) * (i % 4 === 3 ? 0.55 : randomBetween(0.8, 1));
-    g.fillRect(windowX + 210, windowY + 170 + i * 42, lineWidth, 13);
-  }
-  g.fillStyle = 'rgba(255,255,255,.55)';
-  g.fillRect(windowX, windowY + 58, windowWidth, windowHeight - 58);
-  const dialogWidth = 640;
-  const dialogHeight = 300;
-  const dialogX = (width - dialogWidth) / 2;
-  const dialogY = (height - dialogHeight) / 2 + 20;
-  g.fillStyle = 'rgba(0,0,0,.28)';
-  traceRoundRect(g, dialogX + 4, dialogY + 10, dialogWidth, dialogHeight, 10);
-  g.fill();
-  g.fillStyle = '#ffffff';
-  traceRoundRect(g, dialogX, dialogY, dialogWidth, dialogHeight, 10);
-  g.fill();
-  g.strokeStyle = '#b9bec3';
-  g.lineWidth = 2;
-  g.stroke();
-  g.strokeStyle = '#2f6e86';
-  g.lineWidth = 7;
-  g.lineCap = 'round';
-  g.beginPath();
-  g.arc(dialogX + 70, dialogY + 92, 26, -1.2, 3.6);
-  g.stroke();
-  g.fillStyle = '#1f2326';
-  g.font = `600 31px ${FONT.ui}`;
-  g.textAlign = 'left';
-  g.fillText('프로그램이 응답하지 않습니다', dialogX + 122, dialogY + 86);
-  g.fillStyle = '#5b6166';
-  g.font = `400 24px ${FONT.ui}`;
-  g.fillText('기다리거나 강제로 종료할 수 있습니다.', dialogX + 122, dialogY + 128);
-  g.fillText('강제로 종료하면 변경 내용을 잃을 수 있습니다.', dialogX + 122, dialogY + 162);
-  traceRoundRect(g, dialogX + dialogWidth - 380, dialogY + dialogHeight - 86, 170, 54, 8);
-  g.fillStyle = '#eef0f2';
-  g.fill();
-  g.strokeStyle = '#b9bec3';
-  g.stroke();
-  traceRoundRect(g, dialogX + dialogWidth - 196, dialogY + dialogHeight - 86, 170, 54, 8);
-  g.fillStyle = '#2f6e86';
-  g.fill();
-  g.textAlign = 'center';
-  g.font = `600 24px ${FONT.ui}`;
-  g.fillStyle = '#1f2326';
-  g.fillText('기다리기', dialogX + dialogWidth - 295, dialogY + dialogHeight - 51);
-  g.fillStyle = '#ffffff';
-  g.fillText('강제 종료', dialogX + dialogWidth - 111, dialogY + dialogHeight - 51);
+  g.font = `300 24px ${FONT.system}`;
+  fillLines(g, ['지원 담당자에게 문의하는 경우 다음 정보를 알려 주세요.', '중지 코드: CRITICAL_PROCESS_DIED'], margin + qrSpan + 28, qrTop + 44, 42);
   return canvas;
 }
 
