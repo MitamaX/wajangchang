@@ -91,7 +91,9 @@ export class Session {
   }
 
   get tempo() {
-    return this.tool.tempo;
+    const stillWorld = this.frozen || this.isQuiet();
+    const othersIdle = this.tools.every((tool) => tool === this.tool || !tool.busy);
+    return stillWorld && othersIdle ? this.tool.tempo : 1;
   }
 
   get elapsed() {
