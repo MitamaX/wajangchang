@@ -1,26 +1,29 @@
 import { BALL } from '../config.js';
-import { steel } from '../core/canvas.js';
-import { TAU, clamp, easeIn, easeOut, lerp, normalize } from '../core/math.js';
+import { radiate, steel } from '../core/canvas.js';
+import { TAU, easeIn, easeOut, randomBetween } from '../core/math.js';
 import { Layer } from '../physics/PhysicsWorld.js';
 import { Gantry } from './Gantry.js';
+import { Pulse } from './Pulse.js';
 import { Tool } from './Tool.js';
 
 const GROUND_TOLERANCE = 0.004;
 const LUG = Object.freeze({ radius: BALL.radius * 0.24, width: BALL.radius * 0.1, center: -BALL.radius * 1.14 });
 const HANG = LUG.radius - LUG.center;
 const LINK = Object.freeze({ pitch: 0.017, length: 0.024, width: 0.013, thickness: 0.0035 });
-const SHELL = [[0, '#a7aeb5'], [0.35, '#4d535a'], [1, '#121416']];
-const SHINE = Object.freeze({ x: -0.35, y: -0.4, core: 0.05 });
-const OUTLINE = 'rgba(0,0,0,0.5)';
+const SHELL = [[0, '#fff3c4'], [0.22, '#ffb347'], [0.58, '#e8430e'], [1, '#6b1005']];
+const SHINE = Object.freeze({ x: -0.3, y: -0.35, core: 0.08 });
+const HALO = Object.freeze({ reach: 1.9, flicker: [0.94, 1.06], inner: '255,150,60', outer: '255,70,20', alpha: 0.5 });
+const LUG_GLOW = '#e0561c';
+const OUTLINE = 'rgba(40,6,2,0.6)';
 const OUTLINE_WIDTH = 1.2;
 const BODY_SURFACE = Object.freeze({ ...BALL.surface, groups: Layer.tool });
 
-function strokeMetal(context, pixel, x, span, thickness) {
+function strokeOutlined(context, pixel, thickness, ink) {
   context.lineWidth = thickness + OUTLINE_WIDTH * 2 * pixel;
   context.strokeStyle = OUTLINE;
   context.stroke();
   context.lineWidth = thickness;
-  context.strokeStyle = steel(context, x - span, 0, x + span, 0);
+  context.strokeStyle = ink;
   context.stroke();
 }
 
@@ -35,6 +38,13 @@ function traceChain(context, x, bottom, top) {
       context.ellipse(x, y - LINK.length / 2, LINK.width / 2, LINK.length / 2, 0, 0, TAU);
     }
   }
+}
+
+function drawHalo(context) {
+  radiate(context, 0, 0, BALL.radius * HALO.reach * randomBetween(...HALO.flicker), [
+    [0.45, `rgba(${HALO.inner},${HALO.alpha})`],
+    [1, `rgba(${HALO.outer},0)`],
+  ]);
 }
 
 function drawShell(context, pixel) {
@@ -54,10 +64,11 @@ function drawBall(context, pixel, { x, y, angle, alpha }) {
   context.save();
   context.globalAlpha = alpha;
   context.translate(x, y);
+  drawHalo(context);
   context.rotate(angle);
   context.beginPath();
   context.arc(0, LUG.center, LUG.radius, 0, TAU);
-  strokeMetal(context, pixel, 0, LUG.radius, LUG.width);
+  strokeOutlined(context, pixel, LUG.width, LUG_GLOW);
   context.rotate(-angle);
   drawShell(context, pixel);
   context.restore();
@@ -66,12 +77,14 @@ function drawBall(context, pixel, { x, y, angle, alpha }) {
 class Ball {
   constructor(body) {
     this.body = body;
+    this.sears = new Pulse(BALL.searSeconds);
     this.speed = 0;
     this.age = 0;
     this.still = 0;
     this.fade = 0;
-    this.cooldown = 0;
     this.grounded = false;
+    this.touched = false;
+    this.searing = false;
     this.sync();
   }
 
@@ -79,12 +92,12 @@ class Ball {
     return 1 - this.fade / BALL.fadeSeconds;
   }
 
-  get gone() {
-    return this.fade >= BALL.fadeSeconds;
+  get cooling() {
+    return this.fade > 0;
   }
 
-  get live() {
-    return this.surge >= BALL.smashSpeed;
+  get gone() {
+    return this.fade >= BALL.fadeSeconds;
   }
 
   get floored() {
@@ -102,18 +115,20 @@ class Ball {
   update(dt) {
     this.sync();
     this.age += dt;
-    this.cooldown = Math.max(0, this.cooldown - dt);
     this.still = this.grounded && this.speed < BALL.restSpeed ? this.still + dt : 0;
-    if (this.fade > 0 || this.still >= BALL.restSeconds || this.age >= BALL.lifeSeconds) this.fade += dt;
+    if (this.cooling || this.still >= BALL.restSeconds || this.age >= BALL.lifeSeconds) this.fade += dt;
   }
 }
 
 export class WreckingBall extends Tool {
-  constructor(room, surface, { onSmash }) {
+  constructor(room, physics, { onSear, onSizzle, onLand }) {
     super(room);
-    this.surface = surface;
-    this.onSmash = onSmash;
+    this.physics = physics;
+    this.onSear = onSear;
+    this.onSizzle = onSizzle;
+    this.onLand = onLand;
     this.gantry = new Gantry(room, BALL.radius);
+    this.sizzles = new Pulse(BALL.sizzleSeconds);
     this.armed = false;
     this.reload = BALL.reloadSeconds;
     this.balls = [];
@@ -128,11 +143,16 @@ export class WreckingBall extends Tool {
   }
 
   get pending() {
-    return this.armed || this.balls.some((ball) => !ball.grounded || ball.live);
+    return this.armed || this.balls.some((ball) => !ball.grounded);
   }
 
   get shown() {
     return this.active || this.balls.length > 0;
+  }
+
+  get focus() {
+    const ball = this.balls.find((candidate) => candidate.searing && !candidate.grounded);
+    return ball ? { x: ball.x, y: ball.y, radius: BALL.radius, charge: BALL.tension } : null;
   }
 
   get loaded() {
@@ -171,7 +191,8 @@ export class WreckingBall extends Tool {
     this.reload += dt;
     this.steer(dt);
     this.balls.forEach((ball) => this.roll(ball, dt));
-    this.balls.filter((ball) => ball.gone).forEach((ball) => this.surface.physics.removeBody(ball.body));
+    if (this.balls.some((ball) => ball.searing) && this.sizzles.tick(dt)) this.onSizzle();
+    this.balls.filter((ball) => ball.gone).forEach((ball) => this.physics.removeBody(ball.body));
     this.balls = this.balls.filter((ball) => !ball.gone);
   }
 
@@ -182,9 +203,8 @@ export class WreckingBall extends Tool {
   }
 
   drop() {
-    const { physics } = this.surface;
-    const body = physics.createBody({ x: this.gantry.x, y: this.hold, angle: 0, vx: 0, vy: 0, spin: 0 }, true);
-    physics.attachBall(body, BALL.radius, BODY_SURFACE);
+    const body = this.physics.createBody({ x: this.gantry.x, y: this.hold, angle: 0, vx: 0, vy: 0, spin: 0 }, true);
+    this.physics.attachBall(body, BALL.radius, BODY_SURFACE);
     this.balls.push(new Ball(body));
     this.armed = false;
     this.reload = 0;
@@ -192,45 +212,18 @@ export class WreckingBall extends Tool {
 
   roll(ball, dt) {
     ball.update(dt);
-    if (ball.cooldown > 0) return;
     if (!ball.grounded && ball.floored) this.land(ball);
-    else if (!ball.grounded || ball.live) this.crush(ball);
+    if (!ball.cooling && ball.sears.tick(dt)) this.sear(ball);
   }
 
   land(ball) {
     ball.grounded = true;
-    if (ball.live) this.smash(ball, { x: ball.x, y: 0 }, 0);
+    if (ball.surge >= BALL.landSpeed) this.onLand(ball.x);
   }
 
-  crush(ball) {
-    const contact = this.surface.contactAt(ball.x, ball.y, BALL.radius + BALL.contact);
-    if (contact) this.smash(ball, contact.point, ball.grounded ? 0 : BALL.weight);
-  }
-
-  smash(ball, point, weight) {
-    ball.cooldown = BALL.smashCooldown;
-    this.onSmash(this.blow(ball, point, Math.max(weight, clamp(ball.surge / BALL.fullSpeed, 0, 1))));
-  }
-
-  blow(ball, { x, y }, impact) {
-    const [normalX, normalY] = normalize(x - ball.x, y - ball.y);
-    return {
-      x,
-      y,
-      normalX,
-      normalY,
-      radius: BALL.radius * BALL.reach,
-      strength: lerp(...BALL.strength, impact),
-      hits: BALL.hits,
-      falloff: BALL.falloff,
-      shatter: true,
-      spray: BALL.spray,
-      burst: BALL.burst,
-      contact: BALL.contact,
-      blast: BALL.blast,
-      force: impact,
-      cue: 'clank',
-    };
+  sear(ball) {
+    ball.searing = this.onSear({ x: ball.x, y: ball.y, radius: BALL.radius, first: !ball.touched });
+    ball.touched = ball.touched || ball.searing;
   }
 
   draw(context, pixelsPerMeter) {
@@ -243,7 +236,7 @@ export class WreckingBall extends Tool {
     const { x, sky } = this.gantry;
     const center = this.hold - this.hoist;
     traceChain(context, x, center - HANG, sky);
-    strokeMetal(context, pixel, x, LINK.width / 2, LINK.thickness);
+    strokeOutlined(context, pixel, LINK.thickness, steel(context, x - LINK.width / 2, 0, x + LINK.width / 2, 0));
     if (this.hooked) drawBall(context, pixel, { x, y: center, angle: 0, alpha: 1 });
   }
 }

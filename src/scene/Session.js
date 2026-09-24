@@ -1,4 +1,4 @@
-import { CELL_METERS, COMPLETION, FRAGMENTS, GRAVITY, IMPACT, KATANA, PRESS, SAW, SHOCKWAVE, SPECIMEN } from '../config.js';
+import { BALL, CELL_METERS, COMPLETION, FRAGMENTS, GRAVITY, IMPACT, KATANA, PRESS, SAW, SHOCKWAVE, SPECIMEN } from '../config.js';
 import { wholePercent } from '../core/format.js';
 import { TAU, clamp, lerp, normalize, randomBetween, sum } from '../core/math.js';
 import { Fragment, cellMapper } from '../destruction/Fragment.js';
@@ -539,8 +539,36 @@ export class Session {
     return { x, y: bottom, burst: PRESS.burst, strength, aim: (center) => normalize(Math.sign(center.x - x) || 1, -PRESS.squeeze) };
   }
 
-  land(x) {
-    this.shock = PRESS.landShock;
+  sear({ x, y, radius, first }) {
+    const reach = radius / CELL_METERS + this.material.heat.melt;
+    const touched = this.fragmentsWithin({ x, y, radius: reach * CELL_METERS })
+      .map((fragment) => ({ fragment, contact: fragment.solidNear(x, y, reach) }))
+      .filter(({ contact }) => contact);
+    if (!touched.length) return false;
+    if (!this.started) this.onEngage();
+    if (first) this.stats.strikes++;
+    touched.forEach(({ fragment, contact }) => {
+      if (fragment.body) this.melt(fragment, contact, { x, y, reach });
+    });
+    return true;
+  }
+
+  melt(fragment, contact, { x, y, reach }) {
+    const { heat } = this.material;
+    const [cellX, cellY] = fragment.toCell(x, y);
+    fragment.skin.scorch(cellX, cellY, reach * BALL.charReach, heat.char);
+    const molten = this.fracture.carve(fragment.grid, { x: cellX, y: cellY, radius: reach });
+    fragment.reshaped = fragment.reshaped || molten.changed;
+    this.fallout.melt(contact.x, contact.y, molten.removed.length, heat.ember);
+    this.fallout.smolder(contact.x, contact.y, BALL.smoke);
+    const [normalX, normalY] = normalize(contact.x - x, contact.y - y);
+    const cooled = this.clock - fragment.lastImpact >= BALL.crackSeconds;
+    const cracks = cooled ? [this.hitFragment(fragment, { ...contact, normalX, normalY, strength: heat.strength }, 'edge')] : [];
+    this.apply(fragment, cracks, { x: contact.x, y: contact.y, burst: 0, strength: heat.strength });
+  }
+
+  land(x, shock) {
+    this.shock = shock;
     this.sound.clank();
     this.fallout.puff(x, 0);
     this.shockwave(x, 1);

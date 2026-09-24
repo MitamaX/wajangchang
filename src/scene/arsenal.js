@@ -1,4 +1,4 @@
-import { CHARGE } from '../config.js';
+import { BALL, CHARGE, PRESS } from '../config.js';
 import { Bomber } from './Bomber.js';
 import { Hammer } from './Hammer.js';
 import { Katana } from './Katana.js';
@@ -45,15 +45,17 @@ export const ARSENAL = Object.freeze([
     label: '프레스',
     arm: (session) => new Press(session.room, {
       onCrush: (stroke) => session.crush(stroke),
-      onLand: (x) => session.land(x),
+      onLand: (x) => session.land(x, PRESS.landShock),
       onHum: () => session.sound.hum(),
     }),
   },
   {
     key: 'ball',
     label: '철구',
-    arm: (session) => new WreckingBall(session.room, session, {
-      onSmash: (blow) => session.strike(blow),
+    arm: (session) => new WreckingBall(session.room, session.physics, {
+      onSear: (heat) => session.sear(heat),
+      onSizzle: () => session.sound.sear(session.material.key),
+      onLand: (x) => session.land(x, BALL.landShock),
     }),
   },
 ]);

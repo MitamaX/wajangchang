@@ -8,6 +8,7 @@ const T = TEXELS_PER_CELL;
 const CHANNELS = 4;
 const FROST = '255,255,255';
 const HOLLOW = '24,22,20';
+const SOOT = '26,16,10';
 
 const scratch = { canvas: null, context: null };
 
@@ -188,6 +189,10 @@ export class FragmentSkin {
 
   frost(cellX, cellY, cellRadius, strength) {
     this.paint('source-atop', (context) => this.stain(context, cellX * T, cellY * T, cellRadius * T, FROST, Math.min(0.75, 0.45 * strength)));
+  }
+
+  scorch(cellX, cellY, cellRadius, strength) {
+    this.paint('source-atop', (context) => this.stain(context, cellX * T, cellY * T, cellRadius * T, SOOT, strength));
   }
 
   pit(cellX, cellY, cellRadius, strength) {

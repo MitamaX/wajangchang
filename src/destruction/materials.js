@@ -28,6 +28,7 @@ export const MATERIALS = Object.freeze({
     deform: null,
     saw: { reach: 0.6, kerf: 3, strength: 0.44, kickback: 0.15, spray: 1 },
     press: { resistance: 0.3, strength: 1.2, ductile: false },
+    heat: { melt: 5, strength: 0.3, char: 0.3, ember: 'rgba(255,190,100,1)' },
     look: {
       finish: 'gloss',
       rimColor: 'rgba(228,248,244,0.85)',
@@ -65,6 +66,7 @@ export const MATERIALS = Object.freeze({
     deform: { pinch: 0.06, maxPinch: 0.12, radius: 10, threshold: 0.2 },
     saw: { reach: 1, kerf: 5, strength: 0.56, kickback: 0.1, spray: 1.2 },
     press: { resistance: 0.5, strength: 0.8, ductile: true },
+    heat: { melt: 7, strength: 0.1, char: 0.6, ember: 'rgba(255,140,40,1)' },
     look: {
       finish: 'grain',
       rimColor: 'rgba(226,196,150,0.85)',
@@ -102,6 +104,7 @@ export const MATERIALS = Object.freeze({
     deform: null,
     saw: { reach: 0.7, kerf: 3, strength: 0.5, kickback: 0.35, spray: 1.4 },
     press: { resistance: 0.7, strength: 1, ductile: false },
+    heat: { melt: 4, strength: 0.25, char: 0.45, ember: 'rgba(255,110,40,1)' },
     look: {
       finish: 'speckle',
       rimColor: 'rgba(168,164,156,0.8)',
@@ -139,6 +142,7 @@ export const MATERIALS = Object.freeze({
     deform: { pinch: 0.22, maxPinch: 0.32, radius: 17, threshold: 0.05 },
     saw: { reach: 0.15, kerf: 1, strength: 0.25, kickback: 1, spray: 3 },
     press: { resistance: 0.9, strength: 0, ductile: true },
+    heat: { melt: 3, strength: 0.05, char: 0.35, ember: 'rgba(255,236,180,1)' },
     look: {
       finish: 'brushed',
       rimColor: 'rgba(236,240,244,0.9)',

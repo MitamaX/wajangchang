@@ -8,7 +8,11 @@ const CELLS_PER_CHIP = 6;
 const MAX_CRUMB_CHIPS = 5;
 const SURFACE_DUST = 'rgba(170,172,170,1)';
 const SURFACE_PUFF = 10;
+const SMOKE = 'rgba(60,56,52,1)';
+const EMBER = 'rgba(255,150,60,1)';
 const HEADED_SPREAD = 0.45;
+const CELLS_PER_EMBER = 12;
+const MAX_EMBERS = 16;
 
 const SPRAYS = Object.freeze({
   glint: { speed: [0.3, 1.4], size: [0.0015, 0.003] },
@@ -16,6 +20,8 @@ const SPRAYS = Object.freeze({
   chip: { speed: [0.4, 1.4], size: [0.002, 0.005], direction: UPWARD, spread: 1.3 },
   splinter: { speed: [0.5, 1.5], size: [0.002, 0.004], direction: UPWARD, spread: 1.2 },
   spark: { speed: [1.2, 3], size: [0.0015, 0.003], direction: UPWARD, spread: 1.4 },
+  smoke: { speed: [0.1, 0.4], size: [0.004, 0.008], direction: UPWARD, spread: 0.6 },
+  ember: { speed: [0.6, 2.4], size: [0.002, 0.0045], direction: UPWARD, spread: 1.5 },
 });
 
 const GLOW_COLORS = Object.freeze({ glint: 'rgba(255,255,255,1)', spark: 'rgba(255,200,110,1)' });
@@ -35,6 +41,16 @@ export class Fallout {
     this.look.burst.forEach(([kind, count]) => {
       this.debris.spray(kind, x, y, { ...SPRAYS[kind], ...aim, count: Math.round(count * scale), color: colors[kind] });
     });
+  }
+
+  smolder(x, y, count) {
+    this.debris.spray('smoke', x, y, { ...SPRAYS.smoke, count, color: SMOKE });
+    this.debris.spray('spark', x, y, { ...SPRAYS.spark, count, color: EMBER });
+  }
+
+  melt(x, y, cells, color) {
+    const count = Math.min(MAX_EMBERS, Math.ceil(cells / CELLS_PER_EMBER));
+    this.debris.spray('ember', x, y, { ...SPRAYS.ember, count, color });
   }
 
   puff(x, y) {
