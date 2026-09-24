@@ -11,7 +11,9 @@ const TAIL = Object.freeze({ width: SIZE * 0.9, height: SIZE * 0.55, fin: SIZE *
 const BAND = Object.freeze({ top: -SIZE * 0.25, height: SIZE * 0.3 });
 const MUSHROOM = Object.freeze({ peak: 0.72, cap: 0.26, squash: 0.55, stem: 0.085, flare: 1.9, grow: 0.45, cool: 1.8, linger: 0.35, roll: 0.9, curl: 0.35, puff: 0.55, climb: 0.16, skirt: 0.85, whiteout: 0.9, white: 0.95 });
 const PUFF = Object.freeze({ cap: 24, stem: 30, skirt: 18, stemSwell: 1.5, dust: 0.12, palette: [[70, 64, 60], [150, 60, 30], [240, 110, 40], [255, 190, 90], [255, 246, 220]] });
-const TARGET = Object.freeze({ radius: 0.07, width: 2, dash: 6, spin: 30, blink: 18, color: '255,70,50' });
+const TARGET = Object.freeze({ radius: 0.07, spread: 3, width: 2, dash: 6, spin: 30, blink: 18, color: '255,70,50' });
+const BEAM = Object.freeze({ width: 1.5, alpha: 0.55, flicker: [0.6, 1] });
+const DUSK = '8,10,16';
 const CASING = ['#6f7a5c', '#3a4231'];
 const FIN_PAINT = '#2d3327';
 const HOT = '255,246,220';
@@ -121,38 +123,58 @@ class Cloud {
   }
 }
 
-function paintTarget(context, pixel, { x, targetY, age }) {
+function paintTarget(context, pixel, { target: { x, y }, age, arming }) {
   const blink = Math.sin(age * TARGET.blink) > 0 ? 1 : 0.4;
+  const radius = TARGET.radius * lerp(TARGET.spread, 1, easeOut(arming));
   context.save();
   context.strokeStyle = `rgba(${TARGET.color},${0.9 * blink})`;
   context.lineWidth = TARGET.width * pixel;
   context.setLineDash([TARGET.dash * pixel, TARGET.dash * pixel]);
   context.lineDashOffset = -age * TARGET.spin;
   context.beginPath();
-  context.arc(x, targetY, TARGET.radius, 0, TAU);
+  context.arc(x, y, radius, 0, TAU);
   context.stroke();
   context.setLineDash([]);
   context.beginPath();
   [[1, 0], [-1, 0], [0, 1], [0, -1]].forEach(([dx, dy]) => {
-    context.moveTo(x + dx * TARGET.radius * 0.5, targetY + dy * TARGET.radius * 0.5);
-    context.lineTo(x + dx * TARGET.radius * 1.4, targetY + dy * TARGET.radius * 1.4);
+    context.moveTo(x + dx * radius * 0.5, y + dy * radius * 0.5);
+    context.lineTo(x + dx * radius * 1.4, y + dy * radius * 1.4);
   });
   context.stroke();
   context.restore();
-  radiate(context, x, targetY, TARGET.radius * 1.6, [[0, `rgba(${TARGET.color},${0.25 * blink})`], [1, `rgba(${TARGET.color},0)`]]);
+  radiate(context, x, y, radius * 1.6, [[0, `rgba(${TARGET.color},${0.25 * blink})`], [1, `rgba(${TARGET.color},0)`]]);
+}
+
+function paintBeam(context, pixel, { target: { x, y }, arming }, top) {
+  const gradient = context.createLinearGradient(x, top, x, y);
+  gradient.addColorStop(0, `rgba(${TARGET.color},0)`);
+  gradient.addColorStop(1, `rgba(${TARGET.color},${BEAM.alpha * arming * randomBetween(...BEAM.flicker)})`);
+  context.strokeStyle = gradient;
+  context.lineWidth = BEAM.width * pixel;
+  context.beginPath();
+  context.moveTo(x, top);
+  context.lineTo(x, y);
+  context.stroke();
 }
 
 class Warhead {
-  constructor(x, y, targetY) {
+  constructor(x, y) {
     this.x = x;
     this.y = y;
     this.vy = NUKE.drop;
-    this.targetY = targetY;
     this.age = 0;
+    this.target = { x, y: 0 };
+  }
+
+  get arming() {
+    return Math.min(1, this.age / NUKE.armSeconds);
+  }
+
+  get armed() {
+    return this.age >= NUKE.armSeconds;
   }
 
   fall(dt, surface) {
-    this.age += dt;
     const steps = Math.max(1, Math.ceil((this.vy * dt) / NUKE.reach));
     const step = dt / steps;
     for (let i = 0; i < steps; i++) {
@@ -167,16 +189,16 @@ class Warhead {
   landing(surface) {
     if (this.y >= 0) return { x: this.x, y: 0 };
     const contact = surface.contactAt(this.x, this.y, NUKE.reach);
-    if (contact) return contact.point;
-    return this.y >= this.targetY ? { x: this.x, y: this.targetY } : null;
+    return contact ? contact.point : null;
   }
 }
 
 export class Nuke extends Tool {
-  constructor(room, surface, { onImpact, onLaunch }) {
+  constructor(room, surface, { onImpact, onArm, onLaunch }) {
     super(room);
     this.surface = surface;
     this.onImpact = onImpact;
+    this.onArm = onArm;
     this.onLaunch = onLaunch;
     this.warheads = [];
     this.blasts = new Blasts(NUKE.ringSeconds);
@@ -195,10 +217,15 @@ export class Nuke extends Tool {
     return this.warheads.length > 0;
   }
 
+  get focus() {
+    const [warhead] = this.warheads;
+    return warhead ? { ...warhead.target, radius: TARGET.radius, charge: NUKE.tension * warhead.arming } : null;
+  }
+
   windUp() {
     if (this.warheads.length >= NUKE.capacity) return;
-    this.warheads.push(new Warhead(this.aimX, -this.room.ceiling - SKY_GAP, this.aimY));
-    this.onLaunch();
+    this.warheads.push(new Warhead(this.aimX, -this.room.ceiling - SKY_GAP));
+    this.onArm();
   }
 
   stow() {
@@ -208,12 +235,27 @@ export class Nuke extends Tool {
 
   update(dt) {
     this.blasts.update(dt);
-    this.warheads = this.warheads.filter((warhead) => {
-      const hit = warhead.fall(dt, this.surface);
-      if (hit) this.detonate(hit);
-      return !hit;
-    });
+    this.warheads = this.warheads.filter((warhead) => !this.advance(warhead, dt));
     this.clouds = this.clouds.filter((cloud) => (cloud.age += dt) < NUKE.blastSeconds);
+  }
+
+  advance(warhead, dt) {
+    const wasArming = !warhead.armed;
+    warhead.age += dt;
+    warhead.target = this.groundBelow(warhead);
+    if (!warhead.armed) return false;
+    if (wasArming) this.onLaunch();
+    const hit = warhead.fall(dt, this.surface);
+    if (hit) this.detonate(hit);
+    return hit !== null;
+  }
+
+  groundBelow({ x, y }) {
+    for (let probe = Math.max(y, -this.room.ceiling); probe < 0; probe += NUKE.reach) {
+      const contact = this.surface.contactAt(x, probe, NUKE.reach);
+      if (contact) return contact.point;
+    }
+    return { x, y: 0 };
   }
 
   detonate({ x, y }) {
@@ -225,9 +267,11 @@ export class Nuke extends Tool {
 
   draw(context, pixelsPerMeter) {
     const pixel = 1 / pixelsPerMeter;
+    this.warheads.forEach(({ arming }) => this.veil(context, `rgba(${DUSK},${NUKE.dim * easeOut(arming)})`));
     this.clouds.forEach((cloud) => cloud.draw(context));
     this.blasts.draw(context, pixel);
     this.warheads.forEach((warhead) => {
+      paintBeam(context, pixel, warhead, -this.room.ceiling);
       paintTarget(context, pixel, warhead);
       paintWarhead(context, pixel, warhead);
     });
@@ -237,9 +281,12 @@ export class Nuke extends Tool {
 
   paintWhiteout(context, { age }) {
     const glare = 1 - age / MUSHROOM.whiteout;
-    if (glare <= 0) return;
+    if (glare > 0) this.veil(context, `rgba(${heatColor(glare)},${MUSHROOM.white * glare ** 2})`);
+  }
+
+  veil(context, fill) {
     const { halfWidth, ceiling } = this.room;
-    context.fillStyle = `rgba(${heatColor(glare)},${MUSHROOM.white * glare ** 2})`;
+    context.fillStyle = fill;
     context.fillRect(-halfWidth * 2, -ceiling * 2, halfWidth * 4, ceiling * 3);
   }
 }

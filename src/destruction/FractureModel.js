@@ -10,8 +10,6 @@ const CROSS_WANDER = 0.3;
 const MARK_SHARE = 0.35;
 const DENT_DEPTH_GAIN = 4;
 const DENT_FATIGUE = 0.6;
-const SHATTER_RAYS = 14;
-const SHATTER_RINGS = 4;
 const SHATTER_REACH = 1.15;
 const RAY_WOBBLE = 0.3;
 const KERF_ROUGHNESS = 0.08;
@@ -106,14 +104,14 @@ export class FractureModel {
     this.record(outcome, grower);
   }
 
-  shatter(grid, point, radius, outcome) {
+  shatter(grid, point, { radius, rays, rings }, outcome) {
     const grower = new CrackGrower(grid, this.material.pattern, this.grain);
     const turn = Math.random() * TAU;
-    const spacing = TAU / SHATTER_RAYS;
-    const directions = Array.from({ length: SHATTER_RAYS }, (_, i) => polar(turn + spacing * (i + randomBetween(-RAY_WOBBLE, RAY_WOBBLE)), 0));
-    const rays = this.castRays(grid, grower, point, directions, radius * SHATTER_REACH * SHATTER_RAYS);
-    const radii = Array.from({ length: SHATTER_RINGS }, (_, i) => (radius * (i + 1)) / (SHATTER_RINGS + 1));
-    this.weave(grower, point, rays, radii, 1);
+    const spacing = TAU / rays;
+    const directions = Array.from({ length: rays }, (_, i) => polar(turn + spacing * (i + randomBetween(-RAY_WOBBLE, RAY_WOBBLE)), 0));
+    const spokes = this.castRays(grid, grower, point, directions, radius * SHATTER_REACH * rays);
+    const radii = Array.from({ length: rings }, (_, i) => (radius * (i + 1)) / (rings + 1));
+    this.weave(grower, point, spokes, radii, 1);
     this.record(outcome, grower);
   }
 

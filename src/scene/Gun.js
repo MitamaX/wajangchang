@@ -6,7 +6,7 @@ import { Pulse } from './Pulse.js';
 import { Tool } from './Tool.js';
 
 const LENS = 1.3;
-const HOLD = Object.freeze({ x: 0.2, y: 0.17, z: 0.3, depth: 3, follow: 12, sink: 0.3, sway: 0.003, swayRate: 2 });
+const HOLD = Object.freeze({ x: 0, y: 0.17, z: 0.3, depth: 3, follow: 12, sink: 0.3, sway: 0.003, swayRate: 2 });
 const HOUSING = Object.freeze({ from: -0.06, to: 0.07, width: 0.036, height: 0.034, inset: 0.2 });
 const BARRELS = Object.freeze({ count: 6, from: 0.07, to: 0.62, radius: 0.021, width: 0.0105, clamps: [0.25, 0.47], plate: 0.034, bore: 0.008 });
 const CHUTE = Object.freeze({ width: 0.024, steps: 10, links: 0.18 });

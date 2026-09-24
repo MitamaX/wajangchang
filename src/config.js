@@ -13,6 +13,8 @@ export const SPECIMEN = Object.freeze({
   minIslandCells: 40,
 });
 
+export const SHATTER = Object.freeze({ rays: 14, rings: 4 });
+
 export const VIEW = Object.freeze({
   frameAspect: 16 / 9,
   floorLine: 0.84,
@@ -63,7 +65,7 @@ export const BOMB = Object.freeze({
     strength: 3.2,
     hits: 9,
     falloff: 0.6,
-    shatter: true,
+    shatter: SHATTER,
     spray: 2.2,
     burst: 2.6,
     blast: Object.freeze({ reach: 0.5, speed: 7, heft: 0.35 }),
@@ -229,6 +231,9 @@ export const NUKE = Object.freeze({
   gravity: 2.4,
   reach: 0.035,
   size: 0.06,
+  armSeconds: 1.5,
+  tension: 0.7,
+  dim: 0.45,
   blastSeconds: 6,
   ringSeconds: 1.6,
   embers: 180,
@@ -239,11 +244,11 @@ export const NUKE = Object.freeze({
     strength: 12,
     hits: 24,
     falloff: 0.4,
-    shatter: true,
+    shatter: Object.freeze({ rays: 24, rings: 8 }),
     spray: 4,
-    burst: 5,
+    burst: 1.5,
     contact: 0.05,
-    blast: Object.freeze({ reach: 4, speed: 20, heft: 0.8 }),
+    blast: Object.freeze({ reach: 2.5, speed: 6, heft: 0.5 }),
     force: 1,
     shock: Object.freeze({ quake: 0.8, hitStop: 0.32 }),
     cue: 'nuke',

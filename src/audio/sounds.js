@@ -15,6 +15,9 @@ const BLUB = Object.freeze({ pitch: [110, 240], rise: 3.4, seconds: 0.08, gain: 
 const PASS = Object.freeze({ pitch: [1320, 990], whoosh: Object.freeze({ attack: 0.04, seconds: 0.3, from: 1800, to: 500, gain: 0.35 }) });
 const VORTEX = Object.freeze({ rumble: [34, 52], drone: [220, 420], whine: [320, 760], wind: [700, 1500] });
 const STATIC = Object.freeze({ snaps: 14, spread: 0.24, duration: 0.012, frequency: [2400, 7000], gain: [0.05, 0.16] });
+const HORN = Object.freeze({ voice: 'drone', duration: 0.4, frequency: 98, cutoff: 800, q: 4, gain: 0.22, attack: 0.04 });
+const HORN_BLASTS = 3;
+const HORN_GAP = 0.5;
 
 const SUSTAINS = Object.freeze({
   sizzle: [{ voice: 'wash', frequency: 5000, q: 0.6, gain: 0.1 }],
@@ -132,6 +135,11 @@ const CUES = Object.freeze({
     { voice: 'hiss', duration: 0.5, type: 'bandpass', frequency: 4200, to: 700, q: 1.2, gain: 0.35 },
     { voice: 'bell', duration: 1.6, frequency: 61, gain: 0.22 },
     { voice: 'swell', duration: 1.2, type: 'sine', frequency: 880, to: 220, gain: 0.05 },
+  ],
+  alarm: [
+    ...Array.from({ length: HORN_BLASTS }, (_, i) => ({ ...HORN, delay: i * HORN_GAP })),
+    { voice: 'swell', duration: 1.6, frequency: 36, to: 44, gain: 0.3 },
+    { voice: 'hiss', duration: 1.6, type: 'lowpass', frequency: 180, to: 420, gain: 0.25, attack: 1.2 },
   ],
   descent: [
     { voice: 'drone', duration: 1.4, frequency: 62, to: 44, cutoff: 320, q: 3, gain: 0.35, attack: 0.9 },
@@ -335,6 +343,7 @@ export const SOUNDS = Object.freeze({
   static: crackle,
   nuke: cue('nuke'),
   collapse: cue('collapse'),
+  alarm: cue('alarm'),
   descent: cue('descent'),
   pop: cue('pop'),
   punch,

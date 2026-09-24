@@ -115,6 +115,7 @@ export const ARSENAL = Object.freeze([
     label: '핵',
     arm: (session) => new Nuke(session.room, session, {
       onImpact: (blow) => session.incinerate(blow, NUKE.embers),
+      onArm: () => session.sound.cue('alarm'),
       onLaunch: () => session.sound.cue('descent'),
     }),
   },

@@ -331,9 +331,9 @@ export class Session {
   }
 
   smite(fragment, spots, { x, y, strength, radius, shatter, spray, burst }) {
-    const shatterCells = shatter ? radius / CELL_METERS : 0;
+    const web = shatter && { ...shatter, radius: radius / CELL_METERS };
     const outcomes = spots.map((spot, i) => {
-      const outcome = this.hitFragment(fragment, { ...spot, shatter: i === 0 ? shatterCells : 0 }, 'blow');
+      const outcome = this.hitFragment(fragment, { ...spot, shatter: i === 0 && web }, 'blow');
       this.fallout.impact(spot.x, spot.y, spot.strength, this.paletteOf(fragment, outcome.point), spray);
       return outcome;
     });
@@ -662,7 +662,7 @@ export class Session {
     this.shockwave(x, 1);
   }
 
-  hitFragment(fragment, { x, y, normalX, normalY, strength, shatter = 0 }, kind) {
+  hitFragment(fragment, { x, y, normalX, normalY, strength, shatter = null }, kind) {
     fragment.lastImpact = this.clock;
     const [dirX, dirY] = fragment.toLocalDirection(normalX, normalY);
     const [cellX, cellY] = fragment.toCell(x, y);

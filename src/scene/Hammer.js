@@ -1,4 +1,4 @@
-import { CHARGE, HAMMER } from '../config.js';
+import { CHARGE, HAMMER, SHATTER } from '../config.js';
 import { steel, traceRoundRect } from '../core/canvas.js';
 import { clamp, easeOut, lerp, randomBetween, rotate } from '../core/math.js';
 import { MagicCircle, glow } from './MagicCircle.js';
@@ -176,7 +176,7 @@ export class Hammer extends Tool {
       strength: lerp(CHARGE.minStrength, CHARGE.maxStrength, charge),
       hits: 1 + Math.round((CHARGE.hits - 1) * charge),
       falloff: CHARGE.falloff,
-      shatter: charge >= 1,
+      shatter: charge >= 1 && SHATTER,
       spray: lerp(1, CHARGE.spray, charge),
       burst: lerp(1, CHARGE.burst, charge),
       contact: HAMMER.headWidth / 2,
