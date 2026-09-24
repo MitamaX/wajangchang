@@ -75,6 +75,10 @@ export class PhysicsWorld {
     return this.world.createRigidBody(description);
   }
 
+  createKinematicBody({ x, y }) {
+    return this.world.createRigidBody(RAPIER.RigidBodyDesc.kinematicPositionBased().setTranslation(x, y));
+  }
+
   attachConvex(body, points, surface) {
     const description = RAPIER.ColliderDesc.convexHull(points);
     if (!description) return null;
@@ -89,7 +93,15 @@ export class PhysicsWorld {
   }
 
   attachBall(body, radius, surface) {
-    return this.world.createCollider(surfaced(RAPIER.ColliderDesc.ball(radius), surface), body);
+    return this.attach(body, RAPIER.ColliderDesc.ball(radius), surface);
+  }
+
+  attachBox(body, halfWidth, halfHeight, surface) {
+    return this.attach(body, RAPIER.ColliderDesc.cuboid(halfWidth, halfHeight), surface);
+  }
+
+  attach(body, description, surface) {
+    return this.world.createCollider(surfaced(description, surface), body);
   }
 
   removeCollider(collider) {

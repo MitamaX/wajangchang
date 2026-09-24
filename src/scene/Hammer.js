@@ -79,10 +79,6 @@ export class Hammer extends Tool {
     return this.stance !== Stance.REST || this.circle.busy;
   }
 
-  get shown() {
-    return this.present || this.busy;
-  }
-
   get charging() {
     return this.stance === Stance.CHARGE || this.stance === Stance.SWING;
   }

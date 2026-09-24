@@ -16,6 +16,7 @@ const KINDS = Object.freeze({
   spark: { gravity: 0.6, drag: 1.3, bounce: 0.4, life: [0.12, 0.35], solid: false, glow: true },
   ember: { gravity: 1, drag: 0.5, bounce: 0.35, life: [0.5, 1.1], solid: false, glow: true },
   smoke: { gravity: -0.15, drag: 1.5, bounce: 0, life: [0.8, 1.6], solid: false, glow: false, grow: 1.2 },
+  mist: { gravity: 0.08, drag: 2.2, bounce: 0, life: [0.6, 1.3], solid: false, glow: false, grow: 1.3 },
 });
 
 function shardOutline(kind) {
@@ -40,14 +41,14 @@ export class Debris {
 
   stir(thrust) {
     this.flying.forEach((particle) => {
-      const push = thrust(particle.x, particle.y);
+      const push = thrust(particle.x, particle.y, particle.vx, particle.vy);
       if (!push) return;
       particle.vx += push[0];
       particle.vy += push[1];
     });
     const lifted = [];
     this.resting = this.resting.filter((particle) => {
-      const push = thrust(particle.x, particle.y);
+      const push = thrust(particle.x, particle.y, 0, 0);
       if (!push) return true;
       lifted.push(Object.assign(particle, { vx: push[0], vy: push[1], spin: randomBetween(-SPIN, SPIN) }));
       return false;
@@ -56,6 +57,10 @@ export class Debris {
     this.flying.push(...lifted);
     this.settled = [];
     this.stirred = true;
+  }
+
+  swallow(x, y, radius) {
+    this.flying = this.flying.filter((particle) => Math.hypot(particle.x - x, particle.y - y) > radius);
   }
 
   takeStirred() {

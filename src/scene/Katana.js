@@ -58,10 +58,6 @@ export class Katana extends Tool {
     return this.drawing || this.pending || this.glows.length > 0;
   }
 
-  get shown() {
-    return this.present || this.busy;
-  }
-
   get tempo() {
     const composing = this.drawing || (this.slashes.length > 0 && this.wait > KATANA.pause);
     return composing ? KATANA.tempo : 1;

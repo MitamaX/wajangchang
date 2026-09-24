@@ -65,6 +65,26 @@ export function steel(context, x0, y0, x1, y1) {
   return gradient;
 }
 
+const OUTLINE = Object.freeze({ ink: 'rgba(0,0,0,0.5)', width: 1.2 });
+
+export function inkOutline(context, pixel) {
+  context.strokeStyle = OUTLINE.ink;
+  context.lineWidth = OUTLINE.width * pixel;
+}
+
+export function strokeOutline(context, pixel) {
+  inkOutline(context, pixel);
+  context.stroke();
+}
+
+export function strokeLayers(context, pixel, layers) {
+  layers.forEach(([width, color]) => {
+    context.strokeStyle = color;
+    context.lineWidth = width * pixel;
+    context.stroke();
+  });
+}
+
 export function radiate(context, x, y, radius, stops) {
   const gradient = context.createRadialGradient(x, y, 0, x, y, radius);
   stops.forEach(([offset, color]) => gradient.addColorStop(offset, color));

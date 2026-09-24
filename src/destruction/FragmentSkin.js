@@ -187,12 +187,16 @@ export class FragmentSkin {
     context.fillRect(x - radius, y - radius, radius * 2, radius * 2);
   }
 
+  tint(cellX, cellY, cellRadius, ink, alpha) {
+    this.paint('source-atop', (context) => this.stain(context, cellX * T, cellY * T, cellRadius * T, ink, alpha));
+  }
+
   frost(cellX, cellY, cellRadius, strength) {
-    this.paint('source-atop', (context) => this.stain(context, cellX * T, cellY * T, cellRadius * T, FROST, Math.min(0.75, 0.45 * strength)));
+    this.tint(cellX, cellY, cellRadius, FROST, Math.min(0.75, 0.45 * strength));
   }
 
   scorch(cellX, cellY, cellRadius, strength) {
-    this.paint('source-atop', (context) => this.stain(context, cellX * T, cellY * T, cellRadius * T, SOOT, strength));
+    this.tint(cellX, cellY, cellRadius, SOOT, strength);
   }
 
   pit(cellX, cellY, cellRadius, strength) {

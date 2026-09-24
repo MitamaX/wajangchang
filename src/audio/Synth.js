@@ -65,22 +65,33 @@ export class Synth {
     this.envelope(this.filteredNoise(start, duration, { type, frequency, to, q }), start, gain, attack, duration);
   }
 
-  wash(start, duration, { type = 'bandpass', frequency = 1000, q = 0.8, gain = 0.2 }) {
-    const amplifier = this.filteredNoise(start, duration, { type, frequency, to: 0, q });
+  fade(amplifier, start, duration, gain) {
     amplifier.gain.setValueCurveAtTime(HANN_WINDOW.map((level) => level * gain), start, duration);
   }
 
-  tone(start, duration, { type = 'sine', frequency = 440, to = 0, gain = 0.3, attack = 0.003 }) {
+  wash(start, duration, { type = 'bandpass', frequency = 1000, q = 0.8, gain = 0.2 }) {
+    this.fade(this.filteredNoise(start, duration, { type, frequency, to: 0, q }), start, duration, gain);
+  }
+
+  oscillator(start, duration, { type, frequency, to }) {
     const oscillator = this.context.createOscillator();
     oscillator.type = type;
     oscillator.frequency.setValueAtTime(frequency, start);
     if (to) oscillator.frequency.exponentialRampToValueAtTime(to, start + duration);
     const amplifier = this.context.createGain();
-    this.envelope(amplifier, start, gain, attack, duration);
     oscillator.connect(amplifier);
     amplifier.connect(this.master);
     oscillator.start(start);
     oscillator.stop(start + duration + 0.05);
+    return amplifier;
+  }
+
+  tone(start, duration, { type = 'sine', frequency = 440, to = 0, gain = 0.3, attack = 0.003 }) {
+    this.envelope(this.oscillator(start, duration, { type, frequency, to }), start, gain, attack, duration);
+  }
+
+  swell(start, duration, { type = 'sine', frequency = 440, to = 0, gain = 0.1 }) {
+    this.fade(this.oscillator(start, duration, { type, frequency, to }), start, duration, gain);
   }
 
   tinkles(start, count, spread, gain) {

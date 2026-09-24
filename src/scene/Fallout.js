@@ -10,6 +10,9 @@ const SURFACE_DUST = 'rgba(170,172,170,1)';
 const SURFACE_PUFF = 10;
 const SMOKE = 'rgba(60,56,52,1)';
 const EMBER = 'rgba(255,150,60,1)';
+const MIST = 'rgba(215,240,255,1)';
+const FUME = 'rgba(150,200,60,1)';
+const WATER = 'rgba(170,215,255,1)';
 const HEADED_SPREAD = 0.45;
 const CELLS_PER_EMBER = 12;
 const MAX_EMBERS = 16;
@@ -22,6 +25,7 @@ const SPRAYS = Object.freeze({
   spark: { speed: [1.2, 3], size: [0.0015, 0.003], direction: UPWARD, spread: 1.4 },
   smoke: { speed: [0.1, 0.4], size: [0.004, 0.008], direction: UPWARD, spread: 0.6 },
   ember: { speed: [0.6, 2.4], size: [0.002, 0.0045], direction: UPWARD, spread: 1.5 },
+  mist: { speed: [0.05, 0.3], size: [0.006, 0.012] },
 });
 
 const GLOW_COLORS = Object.freeze({ glint: 'rgba(255,255,255,1)', spark: 'rgba(255,200,110,1)' });
@@ -51,6 +55,22 @@ export class Fallout {
   melt(x, y, cells, color) {
     const count = Math.min(MAX_EMBERS, Math.ceil(cells / CELLS_PER_EMBER));
     this.debris.spray('ember', x, y, { ...SPRAYS.ember, count, color });
+  }
+
+  chill(x, y, count) {
+    this.debris.spray('mist', x, y, { ...SPRAYS.mist, count, color: MIST });
+  }
+
+  splash(x, y, count) {
+    this.debris.spray('mist', x, y, { ...SPRAYS.mist, count, color: WATER, direction: -Math.PI / 2, spread: 0.8 });
+  }
+
+  fume(x, y, count) {
+    this.debris.spray('smoke', x, y, { ...SPRAYS.smoke, count, color: FUME });
+  }
+
+  blaze(x, y, count, color) {
+    this.debris.spray('ember', x, y, { ...SPRAYS.ember, count, color, direction: null });
   }
 
   puff(x, y) {

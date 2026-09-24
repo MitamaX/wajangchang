@@ -60,7 +60,7 @@ export class FractureModel {
     return excised({ x, y }, grid.carve(x, y, radius, KERF_ROUGHNESS));
   }
 
-  flatten(grid, inside) {
+  excise(grid, inside) {
     return excised(null, grid.carveWhere(inside));
   }
 

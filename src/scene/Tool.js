@@ -25,6 +25,14 @@ export class Tool {
     return false;
   }
 
+  get busy() {
+    return false;
+  }
+
+  get shown() {
+    return this.present || this.busy;
+  }
+
   get tempo() {
     return 1;
   }
@@ -44,4 +52,13 @@ export class Tool {
   release() {}
 
   cancel() {}
+
+  stow() {
+    this.cancel();
+    this.present = false;
+  }
+
+  update() {}
+
+  draw() {}
 }

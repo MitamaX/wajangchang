@@ -20,6 +20,12 @@ const TENSION_RUMBLE = 0.3;
 const TENSION_VIGNETTE = 0.55;
 const AXES = { x: 0, y: 1.9, roll: 4.3 };
 
+function exitDistance(origin, direction, low, high) {
+  if (direction > 0) return (high - origin) / direction;
+  if (direction < 0) return (low - origin) / direction;
+  return Infinity;
+}
+
 const wave = (time, phase) => (Math.sin(time * SHAKE_RATE + phase) + SHAKE_BLEND * Math.sin(time * SHAKE_RATE * SHAKE_HARMONIC + phase * 2.3)) / (1 + SHAKE_BLEND);
 
 export class Room {
@@ -44,6 +50,10 @@ export class Room {
     this.height = VIEW.floorLine / scale;
     this.ceiling = this.height;
     return this;
+  }
+
+  reach(x, y, dx, dy) {
+    return Math.min(exitDistance(x, dx, -this.halfWidth, this.halfWidth), exitDistance(y, dy, -this.ceiling, 0));
   }
 
   get frameWidth() {

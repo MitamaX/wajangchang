@@ -1,6 +1,7 @@
-import { BOMB, GRAVITY } from '../config.js';
+import { BOMB } from '../config.js';
 import { radiate, traceRoundRect } from '../core/canvas.js';
 import { TAU, lerp, randomBetween } from '../core/math.js';
+import { Perch } from './Perch.js';
 
 const SIZE = BOMB.size;
 const BLINK_DUTY = 0.5;
@@ -95,13 +96,9 @@ export function drawBomb(context, pixel, { x, y, angle = 0, remaining = 1, lit =
   context.restore();
 }
 
-export class Bomb {
+export class Bomb extends Perch {
   constructor(x, y, anchor) {
-    this.x = x;
-    this.y = y;
-    this.angle = 0;
-    this.fall = 0;
-    this.anchor = anchor;
+    super(x, y, anchor, SIZE);
     this.age = 0;
     this.phase = BLINK_DUTY;
     this.lit = false;
@@ -119,20 +116,6 @@ export class Bomb {
     this.age += dt;
     this.follow(dt, surface);
     return this.blink(dt);
-  }
-
-  follow(dt, surface) {
-    const pose = this.anchor && surface.hold(this.anchor);
-    if (pose) {
-      Object.assign(this, pose);
-      this.fall = 0;
-      return;
-    }
-    this.anchor = surface.grip(this.x, this.y, SIZE);
-    if (this.anchor) return;
-    this.fall += GRAVITY * dt;
-    this.y = Math.min(this.y + this.fall * dt, -SIZE);
-    if (this.y === -SIZE) this.fall = 0;
   }
 
   blink(dt) {

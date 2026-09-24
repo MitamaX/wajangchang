@@ -385,7 +385,7 @@ export class App {
     await loadFonts(report.fields.name + report.verdict + report.fields.date, REPORT_FONT_TIMEOUT);
     if (this.session !== session) return;
     const seal = makeSeal(early);
-    this.result.present(report, seal, () => this.sound.stamp());
+    this.result.present(report, seal, () => this.sound.cue('stamp'));
     this.result.showPoster(this.still());
     const outro = (context, width, height, time) => paintOutro(context, width, height, time, report, seal);
     const recording = await this.recorder.finish(outro, OUTRO_CUES, (fraction) => this.result.showProgress(fraction));

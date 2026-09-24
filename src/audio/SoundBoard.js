@@ -3,6 +3,7 @@ import { Synth } from './Synth.js';
 
 const COLLISION_WINDOW = 0.05;
 const COLLISIONS_PER_WINDOW = 3;
+const UNRECORDED = new Set(['hum', 'whir', 'whine']);
 
 export class SoundBoard {
   constructor() {
@@ -43,26 +44,10 @@ export class SoundBoard {
     if (AudioContextClass) this.synth = new Synth(new AudioContextClass());
   }
 
-  emit(name, ...args) {
-    if (this.listener) this.listener(name, args);
-    this.play(name, ...args);
-  }
-
-  play(name, ...args) {
+  cue(name, ...args) {
+    if (this.listener && !UNRECORDED.has(name)) this.listener(name, args);
     const now = this.clock();
     if (now !== null) SOUNDS[name](this.synth, now, ...args);
-  }
-
-  strike(material, strength) {
-    this.emit('strike', material, strength);
-  }
-
-  crack(material, cells) {
-    this.emit('crack', material, cells);
-  }
-
-  shatter(material, pieces) {
-    this.emit('shatter', material, pieces);
   }
 
   collide(material, speed) {
@@ -72,74 +57,6 @@ export class SoundBoard {
       this.windowCount = 0;
     }
     if (++this.windowCount > COLLISIONS_PER_WINDOW) return;
-    this.emit('collide', material, speed);
-  }
-
-  thud() {
-    this.emit('thud');
-  }
-
-  miss() {
-    this.emit('miss');
-  }
-
-  discharge(level) {
-    this.emit('discharge', level);
-  }
-
-  plant() {
-    this.emit('plant');
-  }
-
-  tick() {
-    this.emit('tick');
-  }
-
-  explode(level) {
-    this.emit('explode', level);
-  }
-
-  bite(material) {
-    this.emit('bite', material);
-  }
-
-  slash() {
-    this.emit('slash');
-  }
-
-  sever() {
-    this.emit('sever');
-  }
-
-  crunch(material) {
-    this.emit('crunch', material);
-  }
-
-  clank() {
-    this.emit('clank');
-  }
-
-  sear() {
-    this.emit('sear');
-  }
-
-  sizzle(cadence) {
-    this.emit('sizzle', cadence);
-  }
-
-  hum() {
-    this.play('hum');
-  }
-
-  whir() {
-    this.play('whir');
-  }
-
-  chime(tier, final) {
-    this.emit('chime', tier, final);
-  }
-
-  stamp() {
-    this.emit('stamp');
+    this.cue('collide', material, speed);
   }
 }
