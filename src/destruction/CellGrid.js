@@ -227,16 +227,16 @@ export class CellGrid {
     const width = part.maxX - part.minX + 1;
     const height = part.maxY - part.minY + 1;
     const grid = new CellGrid(width, height);
-    for (let y = 0; y < height; y++) {
-      for (let x = 0; x < width; x++) {
-        const source = (y + part.minY) * this.width + x + part.minX;
-        if (labels[source] !== part.label) continue;
-        const target = y * width + x;
-        CELL_FIELDS.forEach((field) => {
-          grid[field][target] = this[field][source];
-        });
+    CELL_FIELDS.forEach((field) => {
+      const into = grid[field];
+      const from = this[field];
+      for (let y = 0; y < height; y++) {
+        const row = (y + part.minY) * this.width + part.minX;
+        for (let x = 0; x < width; x++) {
+          if (labels[row + x] === part.label) into[y * width + x] = from[row + x];
+        }
       }
-    }
+    });
     grid.tips = this.tips
       .filter((tip) => this.isSolidAt(tip.x, tip.y) && labels[Math.floor(tip.y) * this.width + Math.floor(tip.x)] === part.label)
       .map((tip) => ({ ...tip, x: tip.x - part.minX, y: tip.y - part.minY }));
