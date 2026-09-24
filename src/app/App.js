@@ -25,11 +25,10 @@ import { StageInput } from '../ui/StageInput.js';
 import { StatusBar } from '../ui/StatusBar.js';
 import { Toast } from '../ui/Toast.js';
 import { ToolRack } from '../ui/ToolRack.js';
+import { SetupMemory } from './SetupMemory.js';
 
 const MAX_FRAME_SECONDS = 0.05;
 const PLACEHOLDER_METERS = 0.6;
-const DEFAULT_SAMPLE = 'monday';
-const DEFAULT_MATERIAL = 'glass';
 const REPORT_FONT_TIMEOUT = 1500;
 const FILE_PREFIX = '와장창_';
 const PAUSE_KEY = 'Escape';
@@ -53,7 +52,12 @@ function pngFile(canvas, name) {
 }
 
 export class App {
-  constructor() {
+  static async create() {
+    return new App(await SetupMemory.recall());
+  }
+
+  constructor(memory) {
+    this.memory = memory;
     this.root = byId('app');
     this.canvas = byId('stage');
     this.wrap = byId('stageWrap');
@@ -66,7 +70,7 @@ export class App {
     this.pauseButton = byId('pauseButton');
     this.session = null;
     this.subject = null;
-    this.materialKey = DEFAULT_MATERIAL;
+    this.materialKey = memory.materialKey;
     this.enter(Phase.SETUP);
     this.settleStart = 0;
     this.report = null;
@@ -112,7 +116,7 @@ export class App {
     this.bindChrome();
     new ResizeObserver(() => this.resize()).observe(this.wrap);
     this.resize();
-    this.useSample(DEFAULT_SAMPLE);
+    this.restoreImage();
     this.setup.present();
     loadFonts().then(() => {
       if (this.phase === Phase.SETUP && this.subject && this.subject.sampleKey) this.useSample(this.subject.sampleKey);
@@ -154,6 +158,12 @@ export class App {
     this.renderer.stage(this.camera, room, this.session ? this.session.debris.resting : []);
   }
 
+  restoreImage() {
+    const { upload, name, sampleKey } = this.memory;
+    if (upload) this.useImage(upload, name, null);
+    else this.useSample(sampleKey);
+  }
+
   useSample(key) {
     const sample = SAMPLES[key];
     this.useImage(sample.draw(), sample.name, key);
@@ -161,6 +171,7 @@ export class App {
 
   useImage(source, name, sampleKey) {
     this.subject = { source, name, sampleKey };
+    this.memory.keepImage(source, name, sampleKey);
     this.status.name = name;
     this.setup.selectImage(sampleKey);
     this.prepare(this.materialKey);
@@ -180,6 +191,7 @@ export class App {
 
   prepare(materialKey) {
     this.materialKey = materialKey;
+    this.memory.keepMaterial(materialKey);
     this.reset();
     const material = MATERIALS[materialKey];
     const specimen = Specimen.create(this.subject.source, material);

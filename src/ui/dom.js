@@ -3,7 +3,7 @@ export const byId = (id) => document.getElementById(id);
 export function tileButton({ key, label, icon, shortcut = '' }) {
   const button = document.createElement('button');
   button.type = 'button';
-  button.className = 'tile';
+  button.className = 'choice tile';
   button.dataset.key = key;
   button.setAttribute('aria-pressed', 'false');
   button.innerHTML = `${icon}<span class="tile-name">${label}</span>${shortcut ? `<kbd>${shortcut}</kbd>` : ''}`;
@@ -13,7 +13,7 @@ export function tileButton({ key, label, icon, shortcut = '' }) {
 export function chipButton({ key, label }) {
   const button = document.createElement('button');
   button.type = 'button';
-  button.className = 'chip';
+  button.className = 'choice chip';
   button.dataset.key = key;
   button.setAttribute('aria-pressed', 'false');
   button.textContent = label;
