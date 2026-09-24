@@ -347,10 +347,15 @@ button {
   background-size: 16px 16px;
   background-position: 4px 4px;
   overflow: hidden auto;
+}
+
+.rack,
+.rack-tiles {
   scrollbar-width: none;
 }
 
-.rack::-webkit-scrollbar {
+.rack::-webkit-scrollbar,
+.rack-tiles::-webkit-scrollbar {
   display: none;
 }
 
@@ -723,15 +728,21 @@ button {
     justify-content: center;
     padding: 6px;
     overflow: visible;
-    touch-action: pan-y;
   }
 
   .rack-tiles {
-    grid-template-columns: repeat(var(--rack-slots), var(--tile-width));
+    flex: none;
+    width: calc(var(--rack-slots) * (var(--tile-width) + var(--rack-gap)) - var(--rack-gap));
+    grid-template-columns: repeat(var(--rack-columns), var(--tile-width));
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    scroll-snap-type: x mandatory;
+    scroll-behavior: smooth;
   }
 
-  .rack-tiles .tile[data-offpage] {
-    display: none;
+  .rack-tiles .tile[data-page-start] {
+    scroll-snap-align: start;
+    scroll-snap-stop: always;
   }
 
   .rack-arrow {
@@ -852,5 +863,9 @@ button {
 
   .toast {
     transition: none;
+  }
+
+  .rack-tiles {
+    scroll-behavior: auto;
   }
 }
