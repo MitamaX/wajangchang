@@ -44,8 +44,8 @@ export class StageInput {
   }
 
   move(event) {
-    if (!this.arm()) return;
-    if (this.holder === null || this.holder === event.pointerId) this.handlers.onAim(...this.locate(event));
+    const steering = this.holder === event.pointerId;
+    if (steering || (this.holder === null && this.arm())) this.handlers.onAim(...this.locate(event));
   }
 
   leave() {

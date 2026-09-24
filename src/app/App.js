@@ -102,7 +102,7 @@ export class App {
       onQuit: () => this.finish(true),
     });
     this.input = new StageInput(this.canvas, {
-      canStrike: () => this.phase === Phase.PLAYING,
+      canStrike: () => this.phase === Phase.PLAYING && !this.session.demolished,
       onAim: (x, y) => this.session.tool.aim(...this.camera.toWorld(x, y)),
       onLeave: () => this.session.tool.withdraw(),
       onCharge: (x, y) => this.charge(this.camera.toWorld(x, y)),
