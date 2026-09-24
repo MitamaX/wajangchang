@@ -86,6 +86,7 @@ export class App {
     this.viewWidth = 1;
     this.viewHeight = 1;
     this.lastFrame = performance.now() / 1000;
+    this.carry = 0;
     this.status = new StatusBar();
     this.intake = new ImageIntake({
       canAccept: () => this.phase === Phase.SETUP,
@@ -200,6 +201,7 @@ export class App {
     const specimen = Specimen.create(this.subject.source, material);
     const room = Room.fitting(specimen.widthMeters, specimen.heightMeters);
     this.session = new Session({ specimen, material, room, sound: this.sound, tool: this.toolKey, onEngage: () => this.engage() });
+    this.carry = 0;
     this.resize();
     this.status.material = material.label;
     this.setup.select(materialKey);
@@ -295,9 +297,54 @@ export class App {
   tick(dt, now) {
     const { session } = this;
     if (this.phase === Phase.PAUSED) {
-      this.renderer.render({ camera: this.camera, session });
+      this.draw();
       return;
     }
+    if (session && this.filming) this.film(dt);
+    else this.play(dt);
+    if (!session) return;
+    this.watchCompletion(now);
+    this.status.show(session.destruction, session.elapsed, now);
+  }
+
+  get filming() {
+    const { session } = this;
+    return this.recorder.recording && session.started && session.isBusy(RECORDING.busyGrace);
+  }
+
+  get shotGap() {
+    return this.filming ? this.recorder.lead * this.session.tempo : Infinity;
+  }
+
+  play(dt) {
+    this.advance(dt + this.carry);
+    this.carry = 0;
+    this.draw();
+  }
+
+  film(dt) {
+    if (this.recorder.saturated) return;
+    this.carry += dt;
+    if (this.shoot()) return;
+    this.recorder.elapse(this.carry / this.session.tempo);
+    this.play(0);
+  }
+
+  shoot() {
+    let shot = false;
+    for (let gap = this.shotGap; gap <= this.carry; gap = this.shotGap) {
+      this.recorder.elapse(gap / this.session.tempo);
+      this.advance(gap);
+      this.carry -= gap;
+      this.draw();
+      this.recorder.capture((context, width, height) => this.composeField(context, width, height));
+      shot = true;
+    }
+    return shot;
+  }
+
+  advance(dt) {
+    const { session } = this;
     if (session) {
       session.update(dt);
       const shock = session.takeShock();
@@ -307,13 +354,10 @@ export class App {
       this.renderer.bake(this.camera, session.debris.takeSettled());
     }
     this.camera.update(dt, prefersReducedMotion());
-    this.renderer.render({ camera: this.camera, session });
-    if (!session) return;
-    this.watchCompletion(now);
-    if (session.started && session.isBusy(RECORDING.busyGrace)) {
-      this.recorder.capture(dt / session.tempo, (context, width, height) => this.composeField(context, width, height));
-    }
-    this.status.show(session.destruction, session.elapsed, now);
+  }
+
+  draw() {
+    this.renderer.render({ camera: this.camera, session: this.session });
   }
 
   watchCompletion(now) {

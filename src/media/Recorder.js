@@ -1,11 +1,11 @@
-import { AudioBufferSource, BufferTarget, CanvasSource, EncodedVideoPacketSource, Mp4OutputFormat, Output, QUALITY_HIGH, canEncodeAudio, canEncodeVideo } from 'mediabunny';
+import { AudioBufferSource, BufferTarget, EncodedVideoPacketSource, Mp4OutputFormat, Output, QUALITY_HIGH, VideoSample, VideoSampleSource, canEncodeAudio, canEncodeVideo } from 'mediabunny';
 import { MIX } from '../audio/mixdown.js';
 import { RECORDING } from '../config.js';
 import { createCanvas } from '../core/canvas.js';
 import { Soundtrack } from './Soundtrack.js';
 
 const PROBE = { width: 1280, height: 720 };
-const FRAME_SLACK = 0.12;
+const FRAME_SECONDS = 1 / RECORDING.fps;
 const LISTENING = new Set(['starting', 'recording']);
 const CANCELLABLE = new Set(['recording', 'closing', 'dubbing']);
 const MP4 = 'video/mp4';
@@ -51,12 +51,25 @@ export class Recorder {
     this.soundtrack = null;
     this.frames = 0;
     this.clock = 0;
-    this.pending = false;
+    this.backlog = 0;
+    this.queue = Promise.resolve();
     this.generation = 0;
   }
 
   get timeline() {
-    return this.frames / RECORDING.fps;
+    return this.frames * FRAME_SECONDS;
+  }
+
+  get recording() {
+    return this.state === 'recording';
+  }
+
+  get saturated() {
+    return this.backlog >= RECORDING.backlog;
+  }
+
+  get lead() {
+    return Math.max(0, this.timeline - this.clock);
   }
 
   probe() {
@@ -77,7 +90,8 @@ export class Recorder {
     this.context = this.canvas.getContext('2d', { alpha: false });
     this.frames = 0;
     this.clock = 0;
-    this.pending = false;
+    this.backlog = 0;
+    this.queue = Promise.resolve();
     this.soundtrack = new Soundtrack();
     this.state = 'starting';
     const support = await this.probe();
@@ -88,7 +102,7 @@ export class Recorder {
     }
     const dub = support.audio ? new Dub() : null;
     const output = mp4Output();
-    const source = new CanvasSource(this.canvas, {
+    const source = new VideoSampleSource({
       codec: 'avc',
       quality: QUALITY_HIGH,
       onEncodedPacket: dub ? (packet, meta) => dub.forward(packet, meta) : undefined,
@@ -117,29 +131,31 @@ export class Recorder {
     if (this.soundtrack && LISTENING.has(this.state)) this.soundtrack.cue(name, args, this.clock);
   }
 
-  capture(dt, compose) {
-    if (this.state !== 'recording') return;
-    this.clock += dt;
-    const due = Math.floor(this.clock * RECORDING.fps + FRAME_SLACK);
-    if (this.pending || due < this.frames) return;
-    this.frames = due;
+  elapse(seconds) {
+    this.clock += seconds;
+  }
+
+  capture(compose) {
     compose(this.context, this.canvas.width, this.canvas.height);
     this.push();
   }
 
   push() {
-    const timestamp = this.timeline;
+    const { source, generation } = this;
+    const sample = new VideoSample(this.canvas, { timestamp: this.timeline, duration: FRAME_SECONDS });
     this.frames++;
-    this.pending = true;
+    this.backlog++;
     if (this.soundtrack) this.soundtrack.advance(this.timeline);
-    return this.source.add(timestamp, 1 / RECORDING.fps).then(
-      () => {
-        this.pending = false;
-      },
-      () => {
-        this.state = 'failed';
-      },
-    );
+    this.queue = this.queue
+      .then(() => source.add(sample))
+      .catch(() => {
+        if (generation === this.generation) this.state = 'failed';
+      })
+      .finally(() => {
+        sample.close();
+        if (generation === this.generation) this.backlog--;
+      });
+    return this.queue;
   }
 
   async finish(paintOutro, outroCues, onProgress) {
