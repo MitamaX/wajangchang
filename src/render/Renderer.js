@@ -132,7 +132,7 @@ export class Renderer {
     this.drawShadows(context, session.fragments);
     context.setTransform(view);
     if (this.rubble) context.drawImage(this.rubble, 0, 0);
-    this.drawFragments(context, camera, view, session.fragments);
+    this.drawFragments(context, world, session.fragments);
     context.setTransform(world);
     session.tools.forEach((tool) => tool.draw(context, camera.scale));
     this.drawFlying(context, session.debris.flying);
@@ -175,16 +175,16 @@ export class Renderer {
     context.drawImage(this.shadow, center.x - spreadX, -spreadY, spreadX * 2, spreadY * 2);
   }
 
-  drawFragments(context, camera, view, fragments) {
-    const scale = camera.scale * this.dpr * TEXEL_METERS;
-    for (const fragment of fragments) {
-      const { x, y } = fragment.body.translation();
-      const angle = fragment.body.rotation();
-      const cos = Math.cos(angle) * scale;
-      const sin = Math.sin(angle) * scale;
-      const [screenX, screenY] = camera.toScreen(x, y).map((value) => value * this.dpr);
-      context.setTransform(view.multiply(new DOMMatrix([cos, sin, -sin, cos, screenX, screenY])));
-      context.drawImage(fragment.skin.canvas, -fragment.anchorX * TEXELS_PER_CELL, -fragment.anchorY * TEXELS_PER_CELL);
+  drawFragments(context, world, fragments) {
+    const { a, b, c, d, e, f } = world;
+    for (const { body, skin, anchorX, anchorY } of fragments) {
+      const { x, y } = body.translation();
+      const angle = body.rotation();
+      const cos = Math.cos(angle) * TEXEL_METERS;
+      const sin = Math.sin(angle) * TEXEL_METERS;
+      context.setTransform(a, b, c, d, e, f);
+      context.transform(cos, sin, -sin, cos, x, y);
+      context.drawImage(skin.canvas, -anchorX * TEXELS_PER_CELL, -anchorY * TEXELS_PER_CELL);
     }
   }
 
