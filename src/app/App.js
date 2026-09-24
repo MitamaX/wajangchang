@@ -39,6 +39,7 @@ const OUTRO_CUES = [{ name: 'stamp', offset: STAMP_DELAY / 1000 }];
 
 const Phase = Object.freeze({ SETUP: 'setup', PLAYING: 'playing', PAUSED: 'paused', SETTLING: 'settling', DONE: 'done' });
 const PAUSABLE = new Set([Phase.PLAYING, Phase.PAUSED]);
+const FROZEN = new Set([Phase.PAUSED, Phase.DONE]);
 
 const SHARE_NOTES = Object.freeze({
   shared: '',
@@ -278,7 +279,7 @@ export class App {
 
   tick(dt, now) {
     const { session } = this;
-    if (this.phase === Phase.PAUSED) {
+    if (FROZEN.has(this.phase)) {
       this.draw();
       return;
     }
