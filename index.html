@@ -81,9 +81,12 @@
 
       <div class="overlay" id="result" hidden role="dialog" aria-modal="true" aria-label="파기 보고서">
         <div class="result-inner">
-          <div class="report-frame" id="reportFrame">
-            <canvas class="report" id="reportCanvas" role="img" aria-label="파기 보고서"></canvas>
-          </div>
+          <button class="report-frame" id="reportFrame" type="button" disabled>
+            <span class="report-stage">
+              <canvas class="report" id="reportCanvas" role="img" aria-label="파기 보고서"></canvas>
+            </span>
+            <span class="report-hint">터치하여 계속</span>
+          </button>
           <section class="share" id="share" hidden>
             <div class="preview-frame">
               <div class="preview" id="preview">
