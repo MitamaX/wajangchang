@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+    <title>와장창</title>
+    <link rel="icon" href="data:,">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Gasoek+One&family=IBM+Plex+Mono:wght@500;600&family=IBM+Plex+Sans+KR:wght@400;500;600;700&family=Nanum+Myeongjo:wght@700;800&display=swap">
+  </head>
+  <body>
+    <div class="app">
+      <header class="top">
+        <h1 class="wordmark">와장창</h1>
+      </header>
+
+      <div class="status">
+        <label class="target" for="targetName"><span class="label">대상</span><input id="targetName" type="text" maxlength="20" autocomplete="off" spellcheck="false"></label>
+        <span class="tag" id="materialTag" hidden></span>
+        <div class="meter" id="meter" role="progressbar" aria-label="파괴율" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><div class="meter-fill" id="meterFill"></div></div>
+        <span class="percent" id="percent">0%</span>
+        <span class="timer" id="timer" aria-label="경과 시간">00:00.0</span>
+      </div>
+
+      <main class="work">
+        <nav class="rack" id="rack" aria-label="도구"></nav>
+        <section class="stage-wrap" id="stageWrap">
+          <canvas id="stage" tabindex="0" aria-label="부수기 판"></canvas>
+          <div class="stage-controls">
+            <button class="btn btn-ghost" id="pauseButton" type="button" disabled>
+              <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><rect x="6" y="5" width="4" height="14" rx="1"/><rect x="14" y="5" width="4" height="14" rx="1"/></svg>
+              <span>일시정지</span>
+            </button>
+            <button class="icon-btn" id="soundButton" type="button" aria-pressed="true" aria-label="소리">
+              <svg class="sound-on" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 5 6.5 9H3v6h3.5L11 19z" fill="currentColor" fill-opacity=".2"/><path d="M15.5 8.5a5 5 0 0 1 0 7M18.5 5.5a9 9 0 0 1 0 13"/></svg>
+              <svg class="sound-off" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 5 6.5 9H3v6h3.5L11 19z" fill="currentColor" fill-opacity=".2"/><path d="M16 9.5l5 5M21 9.5l-5 5"/></svg>
+            </button>
+          </div>
+          <div class="setup" id="setup" hidden>
+            <section class="setup-side">
+              <span class="label">이미지</span>
+              <div class="setup-source">
+                <img class="setup-thumb" id="setupThumb" alt="">
+                <div class="setup-picks">
+                  <button class="btn btn-accent btn-compact" id="setupUpload" type="button">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 15V4M7.5 8.5 12 4l4.5 4.5"/><path d="M4 14v4a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-4"/></svg>
+                    <span>이미지 올리기</span>
+                  </button>
+                  <div class="chip-row" id="samples" role="group" aria-label="예시"></div>
+                </div>
+              </div>
+            </section>
+            <section class="setup-side">
+              <span class="label">재질</span>
+              <div class="tile-row" id="materials" role="group" aria-label="재질"></div>
+              <button class="btn btn-accent btn-large" id="startButton" type="button">시작!</button>
+            </section>
+          </div>
+          <div class="drop-veil" id="dropVeil" hidden>여기에 놓기</div>
+          <div class="toast" id="toast" role="status" aria-live="polite"></div>
+        </section>
+      </main>
+
+      <div class="overlay" id="result" hidden role="dialog" aria-modal="true" aria-label="파기 보고서">
+        <div class="result-inner">
+          <div class="report-frame">
+            <canvas class="report" id="reportCanvas" role="img" aria-label="파기 보고서"></canvas>
+          </div>
+          <aside class="share">
+            <div class="preview">
+              <img id="previewPoster" alt="">
+              <video id="previewVideo" muted loop playsinline hidden></video>
+              <div class="render" id="render">
+                <span class="label">영상 생성 중</span>
+                <div class="meter" id="renderMeter" role="progressbar" aria-label="영상 생성" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><div class="meter-fill" id="renderFill"></div></div>
+                <span class="percent" id="renderPercent">0%</span>
+              </div>
+            </div>
+            <div class="share-actions">
+              <button class="btn btn-x btn-large btn-block" id="shareButton" type="button" disabled>
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M17.75 3h3.07l-6.7 7.66L22 21h-6.17l-4.83-6.32L5.47 21H2.4l7.17-8.2L2 3h6.33l4.37 5.78L17.75 3Zm-1.08 16.2h1.7L7.4 4.73H5.58L16.67 19.2Z"/></svg>
+                <span>X에 공유</span>
+              </button>
+              <button class="btn btn-ghost btn-large btn-block" id="saveButton" type="button" disabled>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v11M7.5 10.5 12 15l4.5-4.5"/><path d="M4 16v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg>
+                <span id="saveLabel">영상 저장</span>
+              </button>
+            </div>
+            <p class="share-note" id="shareNote" role="status" hidden></p>
+            <div class="share-next">
+              <button class="btn btn-accent btn-large btn-block" id="continueButton" type="button">계속하기</button>
+            </div>
+          </aside>
+        </div>
+      </div>
+
+      <div class="overlay" id="pause" hidden role="dialog" aria-modal="true" aria-label="일시정지">
+        <div class="menu">
+          <h2 class="menu-title">일시정지</h2>
+          <button class="btn btn-accent btn-large btn-block" id="resumeButton" type="button">계속</button>
+          <button class="btn btn-ghost btn-large btn-block" id="restartButton" type="button">리셋</button>
+          <button class="btn btn-ghost btn-large btn-block" id="resetButton" type="button">처음으로</button>
+          <button class="btn btn-ghost btn-large btn-block" id="quitButton" type="button">결과 보기</button>
+        </div>
+      </div>
+
+      <canvas class="spill" id="spill" aria-hidden="true"></canvas>
+
+      <input type="file" id="fileInput" accept="image/*" hidden>
+    </div>
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>

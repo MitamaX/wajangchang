@@ -1,0 +1,130 @@
+import RAPIER from '@dimforge/rapier2d-compat';
+import { GRAVITY, MAX_PHYSICS_STEPS, PHYSICS_STEP } from '../config.js';
+
+const SLAB = 1;
+const WALL_HEIGHT = 30;
+const SOLVER_ITERATIONS = 6;
+const LINEAR_DAMPING = 0.05;
+const ANGULAR_DAMPING = 0.15;
+const FLOOR_FRICTION = 0.8;
+const WALL_FRICTION = 0.3;
+const GROUP_SHIFT = 16;
+
+const Membership = Object.freeze({ ROOM: 0x1, FRAGMENT: 0x2 });
+const interaction = (member, filter) => ((member << GROUP_SHIFT) | filter) >>> 0;
+
+export const Layer = Object.freeze({
+  fragment: interaction(Membership.FRAGMENT, Membership.ROOM | Membership.FRAGMENT),
+});
+
+const ROOM_GROUPS = interaction(Membership.ROOM, Membership.FRAGMENT);
+
+export class PhysicsWorld {
+  static load() {
+    return RAPIER.init();
+  }
+
+  constructor(halfWidth) {
+    this.world = new RAPIER.World({ x: 0, y: GRAVITY });
+    this.world.timestep = PHYSICS_STEP;
+    this.world.numSolverIterations = SOLVER_ITERATIONS;
+    this.events = new RAPIER.EventQueue(true);
+    this.backlog = 0;
+    this.buildRoom(halfWidth);
+  }
+
+  buildRoom(halfWidth) {
+    const ground = this.world.createRigidBody(RAPIER.RigidBodyDesc.fixed());
+    const slab = (halfX, halfY, x, y, friction) => {
+      const description = RAPIER.ColliderDesc.cuboid(halfX, halfY).setTranslation(x, y).setFriction(friction).setCollisionGroups(ROOM_GROUPS);
+      this.world.createCollider(description, ground);
+    };
+    slab(halfWidth + SLAB * 2, SLAB, 0, SLAB, FLOOR_FRICTION);
+    slab(SLAB, WALL_HEIGHT, -halfWidth - SLAB, SLAB - WALL_HEIGHT, WALL_FRICTION);
+    slab(SLAB, WALL_HEIGHT, halfWidth + SLAB, SLAB - WALL_HEIGHT, WALL_FRICTION);
+  }
+
+  createBody(pose, continuous) {
+    const description = RAPIER.RigidBodyDesc.dynamic()
+      .setTranslation(pose.x, pose.y)
+      .setRotation(pose.angle)
+      .setLinvel(pose.vx, pose.vy)
+      .setAngvel(pose.spin)
+      .setLinearDamping(LINEAR_DAMPING)
+      .setAngularDamping(ANGULAR_DAMPING)
+      .setCcdEnabled(continuous);
+    return this.world.createRigidBody(description);
+  }
+
+  attachConvex(body, points, surface) {
+    const description = RAPIER.ColliderDesc.convexHull(points);
+    if (!description) return null;
+    description
+      .setDensity(surface.density)
+      .setFriction(surface.friction)
+      .setRestitution(surface.restitution)
+      .setCollisionGroups(surface.groups)
+      .setActiveEvents(RAPIER.ActiveEvents.CONTACT_FORCE_EVENTS)
+      .setContactForceEventThreshold(surface.forceThreshold);
+    try {
+      return this.world.createCollider(description, body);
+    } catch {
+      return null;
+    }
+  }
+
+  removeCollider(collider) {
+    this.world.removeCollider(collider, true);
+  }
+
+  removeBody(body) {
+    this.world.removeRigidBody(body);
+  }
+
+  advance(dt, onImpact) {
+    this.backlog = Math.min(this.backlog + dt, PHYSICS_STEP * MAX_PHYSICS_STEPS);
+    const steps = Math.floor(this.backlog / PHYSICS_STEP);
+    this.backlog -= steps * PHYSICS_STEP;
+    for (let step = 0; step < steps; step++) {
+      this.world.step(this.events);
+      this.events.drainContactForceEvents((event) => {
+        onImpact(event.collider1(), event.collider2(), event.totalForceMagnitude() * PHYSICS_STEP);
+      });
+    }
+    return steps * PHYSICS_STEP;
+  }
+
+  bodyOf(handle) {
+    const collider = this.world.getCollider(handle);
+    return collider ? collider.parent() : null;
+  }
+
+  contact(handleA, handleB) {
+    const first = this.world.getCollider(handleA);
+    const second = this.world.getCollider(handleB);
+    if (!first || !second) return null;
+    let found = null;
+    this.world.contactPair(first, second, (manifold, flipped) => {
+      if (found || manifold.numSolverContacts() === 0) return;
+      const point = manifold.solverContactPoint(0);
+      if (!point) return;
+      const normal = manifold.normal();
+      const outward = flipped ? -1 : 1;
+      found = { x: point.x, y: point.y, normalX: normal.x * outward, normalY: normal.y * outward };
+    });
+    return found;
+  }
+
+  hasMotion() {
+    let moving = false;
+    this.world.forEachActiveRigidBody(() => {
+      moving = true;
+    });
+    return moving;
+  }
+
+  dispose() {
+    this.events.free();
+    this.world.free();
+  }
+}
