@@ -31,6 +31,7 @@
   --gutter: 16px;
   --tile-width: 76px;
   --rack-gap: 6px;
+  --rack-arrow: 14px;
   --chip-width: 92px;
   --icon: 18px;
   --tile-icon: 28px;
@@ -366,9 +367,9 @@ button {
 
 .rack-arrow {
   display: none;
-  flex: none;
+  flex: 1 1 0;
   align-self: stretch;
-  width: 14px;
+  min-width: var(--rack-arrow);
   padding: 0;
   border: 0;
   background: none;
@@ -386,7 +387,8 @@ button {
 
 .rack-arrow svg {
   display: block;
-  width: 100%;
+  width: var(--rack-arrow);
+  margin-inline: auto;
 }
 
 .tile {
