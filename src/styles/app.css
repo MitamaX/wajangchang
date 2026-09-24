@@ -58,6 +58,7 @@ body {
   font-size: 14px;
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
+  -webkit-tap-highlight-color: transparent;
   overflow: hidden;
 }
 
@@ -69,6 +70,8 @@ input {
 
 button {
   cursor: pointer;
+  user-select: none;
+  -webkit-user-select: none;
 }
 
 [hidden] {
