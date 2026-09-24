@@ -5,7 +5,7 @@ import { createCanvas } from '../core/canvas.js';
 import { Soundtrack } from './Soundtrack.js';
 
 const PROBE = { width: 1280, height: 720 };
-const FRAME_SLACK = 0.004;
+const FRAME_SLACK = 0.12;
 const LISTENING = new Set(['starting', 'recording']);
 const CANCELLABLE = new Set(['recording', 'closing', 'dubbing']);
 const MP4 = 'video/mp4';
@@ -50,8 +50,8 @@ export class Recorder {
     this.dub = null;
     this.soundtrack = null;
     this.frames = 0;
+    this.clock = 0;
     this.pending = false;
-    this.lastCapture = -Infinity;
     this.generation = 0;
   }
 
@@ -76,8 +76,8 @@ export class Recorder {
     this.canvas = createCanvas(width, height);
     this.context = this.canvas.getContext('2d', { alpha: false });
     this.frames = 0;
+    this.clock = 0;
     this.pending = false;
-    this.lastCapture = -Infinity;
     this.soundtrack = new Soundtrack();
     this.state = 'starting';
     const support = await this.probe();
@@ -114,12 +114,15 @@ export class Recorder {
   }
 
   cue(name, args) {
-    if (this.soundtrack && LISTENING.has(this.state)) this.soundtrack.cue(name, args, this.timeline);
+    if (this.soundtrack && LISTENING.has(this.state)) this.soundtrack.cue(name, args, this.clock);
   }
 
-  capture(now, compose) {
-    if (this.state !== 'recording' || this.pending || now - this.lastCapture < 1 / RECORDING.fps - FRAME_SLACK) return;
-    this.lastCapture = now;
+  capture(dt, compose) {
+    if (this.state !== 'recording') return;
+    this.clock += dt;
+    const due = Math.floor(this.clock * RECORDING.fps + FRAME_SLACK);
+    if (this.pending || due < this.frames) return;
+    this.frames = due;
     compose(this.context, this.canvas.width, this.canvas.height);
     this.push();
   }

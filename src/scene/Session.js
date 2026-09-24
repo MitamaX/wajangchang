@@ -103,6 +103,10 @@ export class Session {
     return this.tool.focus;
   }
 
+  get tempo() {
+    return this.tool.tempo;
+  }
+
   get elapsed() {
     return this.started ? (this.endedAt ?? this.clock) - this.startedAt : 0;
   }

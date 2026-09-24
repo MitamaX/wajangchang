@@ -25,6 +25,10 @@ export class Tool {
     return false;
   }
 
+  get tempo() {
+    return 1;
+  }
+
   aim(x, y) {
     this.present = true;
     this.aimX = clamp(x, -this.room.halfWidth, this.room.halfWidth);

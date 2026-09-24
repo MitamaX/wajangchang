@@ -57,6 +57,10 @@ export class Press extends Tool {
     return this.active || !this.raised;
   }
 
+  get tempo() {
+    return this.holding && !this.crushing && !this.landed ? PRESS.tempo : 1;
+  }
+
   get focus() {
     if (!this.holding) return null;
     const charge = this.crushing ? PRESS.tension.crushing : PRESS.tension.moving;

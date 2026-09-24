@@ -312,7 +312,7 @@ export class App {
     if (!session) return;
     this.watchCompletion(now);
     if (session.started && session.isBusy(RECORDING.busyGrace)) {
-      this.recorder.capture(now, (context, width, height) => this.composeField(context, width, height));
+      this.recorder.capture(dt / session.tempo, (context, width, height) => this.composeField(context, width, height));
     }
     this.status.show(session.destruction, session.elapsed, now);
   }
