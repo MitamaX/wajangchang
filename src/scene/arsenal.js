@@ -24,12 +24,17 @@ export const ARSENAL = Object.freeze([
     }),
   },
   {
-    key: 'bomb',
-    label: '폭탄',
-    arm: (session) => new Bomber(session.room, session, {
-      onStrike: (blow) => session.strike(blow),
-      onPlant: () => session.sound.cue('plant'),
-      onTick: () => session.sound.cue('tick'),
+    key: 'fist',
+    label: '주먹',
+    arm: (session) => new Fist(session.room, {
+      onPunch: (blow) => session.strike(blow),
+    }),
+  },
+  {
+    key: 'cutter',
+    label: '쿠키틀',
+    arm: (session) => new Cutter(session.room, {
+      onStamp: (outline) => session.stamp(outline),
     }),
   },
   {
@@ -41,20 +46,12 @@ export const ARSENAL = Object.freeze([
     }),
   },
   {
-    key: 'katana',
-    label: '참격',
-    arm: (session) => new Katana(session.room, {
-      onSlash: (line) => session.slash(line),
-      onSever: (marks) => session.sever(marks),
-    }),
-  },
-  {
-    key: 'press',
-    label: '프레스',
-    arm: (session) => new Press(session.room, {
-      onCrush: (stroke) => session.crush(stroke),
-      onLand: (x) => session.land(x, PRESS.landShock),
-      onHum: () => session.sound.cue('hum'),
+    key: 'pendulum',
+    label: '진자',
+    arm: (session) => new Pendulum(session.room, session.physics, session, {
+      onHit: (blow) => session.strike(blow),
+      onGrab: () => session.sound.cue('latch'),
+      onPass: (rush, beat) => session.sound.cue('pass', rush, beat),
     }),
   },
   {
@@ -68,6 +65,15 @@ export const ARSENAL = Object.freeze([
     }),
   },
   {
+    key: 'press',
+    label: '프레스',
+    arm: (session) => new Press(session.room, {
+      onCrush: (stroke) => session.crush(stroke),
+      onLand: (x) => session.land(x, PRESS.landShock),
+      onHum: () => session.sound.cue('hum'),
+    }),
+  },
+  {
     key: 'gun',
     label: '기관총',
     arm: (session) => new Gun(session.room, {
@@ -77,11 +83,40 @@ export const ARSENAL = Object.freeze([
     }),
   },
   {
+    key: 'bomb',
+    label: '폭탄',
+    arm: (session) => new Bomber(session.room, session, {
+      onStrike: (blow) => session.strike(blow),
+      onPlant: () => session.sound.cue('plant'),
+      onTick: () => session.sound.cue('tick'),
+    }),
+  },
+  {
+    key: 'katana',
+    label: '참격',
+    arm: (session) => new Katana(session.room, {
+      onSlash: (line) => session.slash(line),
+      onSever: (marks) => session.sever(marks),
+    }),
+  },
+  {
     key: 'lightning',
     label: '번개',
     arm: (session) => new Lightning(session.room, {
       onStrike: (path, blow) => session.electrocute(path, blow),
       onCharge: () => session.sound.cue('static'),
+    }),
+  },
+  {
+    key: 'lava',
+    label: '용암',
+    arm: (session) => new Lava(session.room, {
+      onEngage: () => session.engage(true),
+      onSweep: (thrust) => session.sweep(thrust, LAVA.heft),
+      onMelt: (surface) => session.immerse(surface),
+      onChurn: (cadence) => session.sound.cue('lava', cadence),
+      onSizzle: (cadence) => session.sound.cue('sizzle', cadence),
+      onBlub: () => session.sound.cue('blub'),
     }),
   },
   {
@@ -95,47 +130,12 @@ export const ARSENAL = Object.freeze([
     }),
   },
   {
-    key: 'fist',
-    label: '주먹',
-    arm: (session) => new Fist(session.room, {
-      onPunch: (blow) => session.strike(blow),
-    }),
-  },
-  {
-    key: 'pendulum',
-    label: '진자',
-    arm: (session) => new Pendulum(session.room, session.physics, session, {
-      onHit: (blow) => session.strike(blow),
-      onGrab: () => session.sound.cue('latch'),
-      onPass: (rush, beat) => session.sound.cue('pass', rush, beat),
-    }),
-  },
-  {
     key: 'nuke',
     label: '핵',
     arm: (session) => new Nuke(session.room, session, {
       onImpact: (blow) => session.incinerate(blow, NUKE.embers),
       onArm: () => session.sound.cue('alarm'),
       onLaunch: () => session.sound.cue('descent'),
-    }),
-  },
-  {
-    key: 'cutter',
-    label: '쿠키틀',
-    arm: (session) => new Cutter(session.room, {
-      onStamp: (outline) => session.stamp(outline),
-    }),
-  },
-  {
-    key: 'lava',
-    label: '용암',
-    arm: (session) => new Lava(session.room, {
-      onEngage: () => session.engage(true),
-      onSweep: (thrust) => session.sweep(thrust, LAVA.heft),
-      onMelt: (surface) => session.immerse(surface),
-      onChurn: (cadence) => session.sound.cue('lava', cadence),
-      onSizzle: (cadence) => session.sound.cue('sizzle', cadence),
-      onBlub: () => session.sound.cue('blub'),
     }),
   },
 ]);
