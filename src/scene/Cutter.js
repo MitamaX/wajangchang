@@ -84,7 +84,7 @@ export class Cutter extends Tool {
     this.onStamp = onStamp;
     this.turn = 0;
     this.time = 0;
-    this.press = null;
+    this.presses = [];
   }
 
   get shape() {
@@ -92,11 +92,11 @@ export class Cutter extends Tool {
   }
 
   get busy() {
-    return this.press !== null;
+    return this.presses.length > 0;
   }
 
   get pending() {
-    return this.busy && !this.press.stamped;
+    return this.presses.some((press) => !press.stamped);
   }
 
   get lifetime() {
@@ -104,26 +104,26 @@ export class Cutter extends Tool {
   }
 
   windUp() {
-    if (this.press) return;
-    this.press = { x: this.aimX, y: this.aimY, shape: this.shape, age: 0, stamped: false };
+    this.presses.push({ x: this.aimX, y: this.aimY, shape: this.shape, age: 0, stamped: false });
+    this.turn++;
   }
 
   stow() {
     super.stow();
-    this.press = null;
+    this.presses = [];
   }
 
   update(dt) {
     this.time += dt;
-    const { press } = this;
-    if (!press) return;
+    this.presses.forEach((press) => this.advance(press, dt));
+    this.presses = this.presses.filter((press) => press.age < this.lifetime);
+  }
+
+  advance(press, dt) {
     press.age += dt;
-    if (!press.stamped && press.age >= CUTTER.pressSeconds) {
-      press.stamped = true;
-      this.turn++;
-      this.onStamp(outlineAt(press.shape, press.x, press.y, 1));
-    }
-    if (press.age >= this.lifetime) this.press = null;
+    if (press.stamped || press.age < CUTTER.pressSeconds) return;
+    press.stamped = true;
+    this.onStamp(outlineAt(press.shape, press.x, press.y, 1));
   }
 
   pose({ age }) {
@@ -136,20 +136,23 @@ export class Cutter extends Tool {
 
   draw(context, pixelsPerMeter) {
     const pixel = 1 / pixelsPerMeter;
-    const { press } = this;
-    if (press) {
-      const { scale, lift, alpha } = this.pose(press);
-      const outline = outlineAt(press.shape, press.x, press.y, scale);
-      context.save();
-      context.globalAlpha = alpha;
-      if (lift > 0) paintShadow(context, pixel, outline, lift);
-      paintCutter(context, pixel, outline);
-      context.restore();
-      const since = press.age - CUTTER.pressSeconds;
-      if (since >= 0 && since < FLASH.seconds) paintFlash(context, pixel, outlineAt(press.shape, press.x, press.y, 1), since);
-      return;
-    }
-    if (!this.present) return;
+    this.presses.forEach((press) => this.drawPress(context, pixel, press));
+    if (this.present && !this.busy) this.drawHover(context, pixel);
+  }
+
+  drawPress(context, pixel, press) {
+    const { scale, lift, alpha } = this.pose(press);
+    const outline = outlineAt(press.shape, press.x, press.y, scale);
+    context.save();
+    context.globalAlpha = alpha;
+    if (lift > 0) paintShadow(context, pixel, outline, lift);
+    paintCutter(context, pixel, outline);
+    context.restore();
+    const since = press.age - CUTTER.pressSeconds;
+    if (since >= 0 && since < FLASH.seconds) paintFlash(context, pixel, outlineAt(press.shape, press.x, press.y, 1), since);
+  }
+
+  drawHover(context, pixel) {
     const outline = outlineAt(this.shape, this.aimX, this.aimY - HOVER.bob * CUTTER.size * (1 + Math.sin(this.time * HOVER.rate)), 1);
     context.save();
     context.globalAlpha = HOVER.alpha;
