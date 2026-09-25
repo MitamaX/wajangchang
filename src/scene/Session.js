@@ -106,9 +106,13 @@ export class Session {
     if (!this.started) this.startedAt = this.clock;
   }
 
+  get idle() {
+    return this.tools.every((tool) => !tool.busy);
+  }
+
   end() {
     if (this.endedAt === null) this.endedAt = this.clock;
-    this.stowTools();
+    this.tools.forEach((tool) => tool.retire());
   }
 
   wield() {
@@ -131,8 +135,7 @@ export class Session {
     const { tool } = this;
     if (next === tool) return;
     const { active, present, aimX, aimY } = tool;
-    tool.cancel();
-    tool.withdraw();
+    tool.retire();
     tool.active = false;
     next.active = active;
     this.tool = next;

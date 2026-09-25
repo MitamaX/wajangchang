@@ -53,9 +53,13 @@ export class Tool {
 
   cancel() {}
 
-  stow() {
+  retire() {
     this.cancel();
-    this.present = false;
+    this.withdraw();
+  }
+
+  stow() {
+    this.retire();
   }
 
   update() {}

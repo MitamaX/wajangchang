@@ -393,6 +393,7 @@ export const COMPLETION = Object.freeze({
   destruction: 0.99,
   settleDelay: 0.6,
   settleTimeout: 2.5,
+  effectTimeout: 7,
 });
 
 export const RECORDING = Object.freeze({
