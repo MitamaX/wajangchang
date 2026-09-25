@@ -985,15 +985,9 @@ button {
     flex: none;
     width: calc(var(--rack-slots) * (var(--tile-width) + var(--rack-gap)) - var(--rack-gap));
     grid-template-columns: repeat(var(--rack-columns), var(--tile-width));
-    overflow-x: auto;
-    overscroll-behavior-x: contain;
-    scroll-snap-type: x mandatory;
+    overflow-x: hidden;
+    touch-action: pan-y;
     scroll-behavior: smooth;
-  }
-
-  .rack-tiles .tile[data-page-start] {
-    scroll-snap-align: start;
-    scroll-snap-stop: always;
   }
 
   .rack-arrow {

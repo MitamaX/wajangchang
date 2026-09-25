@@ -5,6 +5,8 @@ import { ICONS } from './icons.js';
 const PAGE_SIZE = 4;
 const SHORTCUTS = [...'123456789'];
 const WHEEL_STEP = 60;
+const SWIPE_SHARE = 0.3;
+const TAP_SLOP = 8;
 
 const pageOf = (index) => Math.floor(index / PAGE_SIZE);
 
@@ -16,19 +18,23 @@ export class ToolRack {
     this.nextButton = byId('rackNext');
     this.lastPage = pageOf(this.buttons.length - 1);
     this.wheel = 0;
+    this.drag = null;
+    this.swiped = false;
     this.tiles.style.setProperty('--rack-slots', String(PAGE_SIZE));
     this.tiles.style.setProperty('--rack-columns', String((this.lastPage + 1) * PAGE_SIZE));
     this.tiles.append(...this.buttons);
-    this.buttons.forEach((button, index) => {
-      button.toggleAttribute('data-page-start', index % PAGE_SIZE === 0);
-      button.addEventListener('click', () => onSelect(button.dataset.key));
-    });
+    this.buttons.forEach((button) => button.addEventListener('click', () => onSelect(button.dataset.key)));
     [this.prevButton, this.nextButton].forEach((arrow) => {
       arrow.hidden = this.lastPage === 0;
     });
     this.prevButton.addEventListener('click', () => this.turn(-1));
     this.nextButton.addEventListener('click', () => this.turn(1));
     this.tiles.addEventListener('scroll', () => this.mark());
+    this.tiles.addEventListener('pointerdown', (event) => this.grab(event));
+    this.tiles.addEventListener('pointermove', (event) => this.pull(event));
+    this.tiles.addEventListener('pointerup', (event) => this.letGo(event, true));
+    this.tiles.addEventListener('pointercancel', (event) => this.letGo(event, false));
+    this.tiles.addEventListener('click', (event) => this.swallowSwipe(event), true);
     byId('rack').addEventListener('wheel', (event) => this.scroll(event), { passive: false });
     this.mark();
   }
@@ -70,10 +76,41 @@ export class ToolRack {
     this.nextButton.disabled = page === this.lastPage;
   }
 
-  scroll(event) {
-    if (!this.paged || Math.abs(event.deltaX) >= Math.abs(event.deltaY)) return;
+  grab(event) {
+    this.swiped = false;
+    if (!this.paged || event.pointerType === 'mouse') return;
+    this.drag = { id: event.pointerId, x: event.clientX, page: this.page };
+  }
+
+  pull(event) {
+    const { drag } = this;
+    if (!drag || drag.id !== event.pointerId) return;
+    const shift = event.clientX - drag.x;
+    if (Math.abs(shift) > TAP_SLOP) this.swiped = true;
+    if (this.swiped) this.tiles.scrollTo({ left: drag.page * this.stride - shift, behavior: 'instant' });
+  }
+
+  letGo(event, commit) {
+    const { drag } = this;
+    if (!drag || drag.id !== event.pointerId) return;
+    this.drag = null;
+    const shift = event.clientX - drag.x;
+    const turning = commit && Math.abs(shift) > this.stride * SWIPE_SHARE;
+    this.show(drag.page - (turning ? Math.sign(shift) : 0));
+  }
+
+  swallowSwipe(event) {
+    if (!this.swiped) return;
+    this.swiped = false;
     event.preventDefault();
-    this.wheel += event.deltaMode === WheelEvent.DOM_DELTA_PIXEL ? event.deltaY : Math.sign(event.deltaY) * WHEEL_STEP;
+    event.stopPropagation();
+  }
+
+  scroll(event) {
+    if (!this.paged) return;
+    event.preventDefault();
+    const delta = Math.abs(event.deltaX) > Math.abs(event.deltaY) ? event.deltaX : event.deltaY;
+    this.wheel += event.deltaMode === WheelEvent.DOM_DELTA_PIXEL ? delta : Math.sign(delta) * WHEEL_STEP;
     if (Math.abs(this.wheel) < WHEEL_STEP) return;
     this.turn(Math.sign(this.wheel));
     this.wheel = 0;
