@@ -91,7 +91,7 @@ export class App {
       onStart: () => this.start(),
     });
     this.result = new ResultDialog({
-      onShare: () => this.shareToX(),
+      onShare: () => this.share(),
       onSave: () => this.saveMedia(),
       onContinue: () => this.ready(),
     });
@@ -414,7 +414,7 @@ export class App {
     return canvas;
   }
 
-  async shareToX() {
+  async share() {
     if (!this.shareFile) return;
     const outcome = await this.shareKit.post(this.shareFile, shareText(this.report));
     this.result.showNote(SHARE_NOTES[outcome]);

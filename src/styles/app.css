@@ -12,8 +12,8 @@
   --hazard: #ffc21a;
   --hazard-hover: #ffcf45;
   --hazard-ink: #17150e;
-  --x: #f5f5f2;
-  --x-ink: #0f0f10;
+  --share: #f5f5f2;
+  --share-ink: #0f0f10;
   --ok: #9bd48f;
   --focus: #8ccbff;
   --stage: #45484b;
@@ -173,12 +173,12 @@ button {
   color: var(--ink);
 }
 
-.btn-x {
-  background: var(--x);
-  color: var(--x-ink);
+.btn-share {
+  background: var(--share);
+  color: var(--share-ink);
 }
 
-.btn-x:hover:not([disabled]) {
+.btn-share:hover:not([disabled]) {
   background: #fff;
 }
 
