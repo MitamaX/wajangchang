@@ -386,7 +386,6 @@ export const IMPACT = Object.freeze({
 
 export const FRAGMENTS = Object.freeze({
   minBodyCells: 24,
-  maxBodies: 220,
   ccdCells: 1600,
   impactCooldown: 0.12,
   minImpactCells: 60,
@@ -412,8 +411,21 @@ export const COMPLETION = Object.freeze({
 
 export const RECORDING = Object.freeze({
   fps: 30,
-  longEdge: 1280,
   outroSeconds: 3.6,
   busyGrace: 0.9,
   backlog: 8,
+});
+
+const LITE = Object.freeze({ pixelRatio: 1, bodies: 100, flying: 3000, resting: 3000, density: 0.5, shadows: false, effects: true, longEdge: 854 });
+
+export const FIDELITY = Object.freeze({
+  full: Object.freeze({ pixelRatio: 2, bodies: 220, flying: 6000, resting: 6000, density: 1, shadows: true, effects: true, longEdge: 1280 }),
+  lite: LITE,
+  bare: Object.freeze({ ...LITE, density: 0, effects: false }),
+});
+
+export const LAG = Object.freeze({
+  window: 3,
+  minFps: 28,
+  outlier: 0.5,
 });

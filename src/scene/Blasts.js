@@ -1,4 +1,5 @@
 import { radiate } from '../core/canvas.js';
+import { fidelity } from '../core/fidelity.js';
 import { TAU, easeOut, lerp } from '../core/math.js';
 
 const FIREBALL_GROWTH = [0.5, 1.3];
@@ -45,6 +46,7 @@ export class Blasts {
   }
 
   draw(context, pixel) {
+    if (!fidelity.profile.effects) return;
     this.list.forEach((blast) => paintBlast(context, pixel, blast, this.seconds));
   }
 }

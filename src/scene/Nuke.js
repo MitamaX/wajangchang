@@ -1,5 +1,6 @@
 import { NUKE } from '../config.js';
 import { HAZARD, HAZARD_INK, inkOutline, paintReticle, radiate, traceRoundRect } from '../core/canvas.js';
+import { fidelity } from '../core/fidelity.js';
 import { TAU, clamp, easeOut, lerp, polar, randomBetween } from '../core/math.js';
 import { Blasts } from './Blasts.js';
 import { Tool } from './Tool.js';
@@ -267,8 +268,8 @@ export class Nuke extends Tool {
 
   draw(context, pixelsPerMeter) {
     const pixel = 1 / pixelsPerMeter;
-    this.warheads.forEach(({ arming }) => this.veil(context, `rgba(${DUSK},${NUKE.dim * easeOut(arming)})`));
-    this.clouds.forEach((cloud) => cloud.draw(context));
+    const { effects } = fidelity.profile;
+    if (effects) this.drawAtmosphere(context);
     this.blasts.draw(context, pixel);
     this.warheads.forEach((warhead) => {
       paintBeam(context, pixel, warhead, -this.room.ceiling);
@@ -276,7 +277,12 @@ export class Nuke extends Tool {
       paintWarhead(context, pixel, warhead);
     });
     if (this.present) paintReticle(context, this.aimX, this.aimY, pixel);
-    this.clouds.forEach((cloud) => this.paintWhiteout(context, cloud));
+    if (effects) this.clouds.forEach((cloud) => this.paintWhiteout(context, cloud));
+  }
+
+  drawAtmosphere(context) {
+    this.warheads.forEach(({ arming }) => this.veil(context, `rgba(${DUSK},${NUKE.dim * easeOut(arming)})`));
+    this.clouds.forEach((cloud) => cloud.draw(context));
   }
 
   paintWhiteout(context, { age }) {

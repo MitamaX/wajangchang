@@ -1,5 +1,6 @@
 import { CHARGE } from '../config.js';
 import { createCanvas, radiate } from '../core/canvas.js';
+import { fidelity } from '../core/fidelity.js';
 import { TAU, clamp, easeOut, polar, randomBetween, randomInt, rotate } from '../core/math.js';
 
 const INK = '170,235,255';
@@ -251,15 +252,16 @@ export class MagicCircle {
   }
 
   draw(context, pixel) {
+    const { effects } = fidelity.profile;
     context.save();
     context.globalCompositeOperation = 'lighter';
     context.lineCap = 'round';
-    this.bursts.forEach((burst) => this.drawBurst(context, pixel, burst));
-    if (this.fade) this.drawSigil(context, pixel);
+    if (effects) this.bursts.forEach((burst) => this.drawBurst(context, pixel, burst));
+    if (this.fade) this.drawSigil(context, pixel, effects);
     context.restore();
   }
 
-  drawSigil(context, pixel) {
+  drawSigil(context, pixel, effects) {
     const { x, y, radius, charge } = this.focus;
     const pulse = charge >= 1 ? 1 - PULSE_DEPTH + PULSE_DEPTH * Math.sin(this.time * PULSE_RATE) : 1;
     const intensity = this.fade * pulse;
@@ -268,7 +270,7 @@ export class MagicCircle {
     const { a, b } = context.getTransform();
     const deviceScale = Math.hypot(a, b);
     this.sprites.forEach((sprite) => this.drawLayer(context, pixel, sprite, intensity, deviceScale));
-    this.drawMotes(context, pixel, intensity);
+    if (effects) this.drawMotes(context, pixel, intensity);
   }
 
   drawLayer(context, pixel, sprite, intensity, deviceScale) {

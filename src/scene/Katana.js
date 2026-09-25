@@ -1,5 +1,6 @@
 import { KATANA } from '../config.js';
 import { paintReticle } from '../core/canvas.js';
+import { fidelity } from '../core/fidelity.js';
 import { easeOut, lerp, normalize, randomBetween } from '../core/math.js';
 import { Tool } from './Tool.js';
 
@@ -134,18 +135,22 @@ export class Katana extends Tool {
   drawSlashes(context) {
     context.save();
     context.globalCompositeOperation = 'lighter';
-    context.shadowColor = SLASH_GLOW;
-    context.shadowBlur = SLASH_GLOW_BLUR;
-    this.glows.forEach((glow) => {
-      const fading = 1 - glow.age / KATANA.afterglow;
-      paintSlash(context, glow, 1, KATANA.width * AFTERGLOW_SWELL * fading, fading);
-    });
+    if (fidelity.profile.effects) this.drawAfterglow(context);
     [...this.slashes, ...this.queue].forEach((slash) => {
       const drawn = slash.age / KATANA.drawIn;
       const width = drawn < 1 ? 1 : SETTLED_WIDTH * randomBetween(...FLICKER);
       paintSlash(context, slash, easeOut(Math.min(1, drawn)), KATANA.width * width, 1);
     });
     context.restore();
+  }
+
+  drawAfterglow(context) {
+    context.shadowColor = SLASH_GLOW;
+    context.shadowBlur = SLASH_GLOW_BLUR;
+    this.glows.forEach((glow) => {
+      const fading = 1 - glow.age / KATANA.afterglow;
+      paintSlash(context, glow, 1, KATANA.width * AFTERGLOW_SWELL * fading, fading);
+    });
   }
 
   drawTrail(context, pixel) {

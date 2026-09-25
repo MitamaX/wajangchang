@@ -1,8 +1,9 @@
-const MAX_PIXEL_RATIO = 2;
+import { fidelity } from './fidelity.js';
+
 const REDUCED_MOTION = matchMedia('(prefers-reduced-motion: reduce)');
 const COMPACT_LAYOUT = matchMedia('(max-width: 900px)');
 
-export const pixelRatio = () => Math.min(window.devicePixelRatio || 1, MAX_PIXEL_RATIO);
+export const pixelRatio = () => Math.min(window.devicePixelRatio || 1, fidelity.profile.pixelRatio);
 
 export const prefersReducedMotion = () => REDUCED_MOTION.matches;
 

@@ -1,5 +1,6 @@
 import { BLACKHOLE } from '../config.js';
 import { radiate } from '../core/canvas.js';
+import { fidelity } from '../core/fidelity.js';
 import { TAU, clamp, easeOut, lerp, randomBetween } from '../core/math.js';
 import { Pulse } from './Pulse.js';
 import { Tool } from './Tool.js';
@@ -162,15 +163,14 @@ export class BlackHole extends Tool {
 
   draw(context, pixelsPerMeter) {
     const pixel = 1 / pixelsPerMeter;
-    this.flares.forEach((flare) => this.drawFlare(context, pixel, flare));
+    const { effects } = fidelity.profile;
+    if (effects) this.flares.forEach((flare) => this.drawFlare(context, pixel, flare));
     if (!this.holding) return;
     const { x, y, horizon, size } = this;
-    this.warp(context, x, y, horizon, size);
-    shade(context, x, y, this.reach * SHADE.reach, SHADE.alpha * size);
-    radiate(context, x, y, horizon * LENS.reach, [[0, `rgba(${HALO},${0.35 * size})`], [1, `rgba(${HALO},0)`]]);
+    if (effects) this.drawSurroundings(context, x, y, horizon, size);
     context.save();
     context.translate(x, y);
-    this.drawDisk(context, pixel, horizon, Math.PI, TAU);
+    if (effects) this.drawDisk(context, pixel, horizon, Math.PI, TAU);
     context.fillStyle = `rgb(${INK})`;
     context.beginPath();
     context.arc(0, 0, horizon, 0, TAU);
@@ -181,10 +181,20 @@ export class BlackHole extends Tool {
     context.beginPath();
     context.arc(0, 0, horizon * PHOTON.reach, 0, TAU);
     context.stroke();
-    this.drawDisk(context, pixel, horizon, 0, Math.PI);
-    this.drawMotes(context, pixel);
+    if (effects) this.drawSwirl(context, pixel, horizon);
     context.restore();
     radiate(context, x, y, horizon * PHOTON.reach * PHOTON.glow, [[0.55, `rgba(${HOT},0)`], [0.7, `rgba(${HOT},${0.5 * size})`], [1, `rgba(${DISK_OUTER},0)`]]);
+  }
+
+  drawSurroundings(context, x, y, horizon, size) {
+    this.warp(context, x, y, horizon, size);
+    shade(context, x, y, this.reach * SHADE.reach, SHADE.alpha * size);
+    radiate(context, x, y, horizon * LENS.reach, [[0, `rgba(${HALO},${0.35 * size})`], [1, `rgba(${HALO},0)`]]);
+  }
+
+  drawSwirl(context, pixel, horizon) {
+    this.drawDisk(context, pixel, horizon, 0, Math.PI);
+    this.drawMotes(context, pixel);
   }
 
   warp(context, x, y, horizon, size) {

@@ -1,8 +1,7 @@
 import { GRAVITY } from '../config.js';
+import { fidelity } from '../core/fidelity.js';
 import { TAU, clamp, randomBetween, randomInt } from '../core/math.js';
 
-const MAX_FLYING = 6000;
-const MAX_RESTING = 6000;
 const SETTLE_SPEED = 0.25;
 const FLOOR_SLIDE = 0.6;
 const SPLINTER_STRETCH = 3.2;
@@ -85,7 +84,8 @@ export class Debris {
   }
 
   add(kind, { x, y, vx, vy, size, color }) {
-    if (this.flying.length >= MAX_FLYING) return;
+    const { flying, density } = fidelity.profile;
+    if (this.flying.length >= flying || Math.random() >= density) return;
     const spec = KINDS[kind];
     this.flying.push({
       kind,
@@ -141,7 +141,8 @@ export class Debris {
     particle.y = -particle.size * randomBetween(0.1, 0.4);
     this.resting.push(particle);
     this.settled.push(particle);
-    if (this.resting.length > MAX_RESTING) this.resting.shift();
+    const excess = this.resting.length - fidelity.profile.resting;
+    if (excess > 0) this.resting.splice(0, excess);
   }
 
   takeSettled() {

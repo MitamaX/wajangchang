@@ -37,6 +37,22 @@
   --tile-icon: 28px;
   --tape-tile: 28.28px;
   --shadow-panel: 0 10px 30px rgba(0, 0, 0, 0.35);
+  --blur-panel: blur(6px);
+  --blur-veil: blur(2px);
+  --needle: 70deg;
+}
+
+.app:not([data-fidelity="full"]) {
+  --blur-panel: none;
+  --blur-veil: none;
+}
+
+.app[data-fidelity="lite"] {
+  --needle: 0deg;
+}
+
+.app[data-fidelity="bare"] {
+  --needle: -70deg;
 }
 
 *,
@@ -119,8 +135,8 @@ button {
 
 .stage-controls > button {
   background: var(--veil);
-  backdrop-filter: blur(6px);
-  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: var(--blur-panel);
+  -webkit-backdrop-filter: var(--blur-panel);
 }
 
 .btn {
@@ -222,6 +238,12 @@ button {
 .icon-btn[aria-pressed="false"] .sound-on,
 .icon-btn[aria-pressed="true"] .sound-off {
   display: none;
+}
+
+.gauge-needle {
+  transform-origin: 12px 14px;
+  transform: rotate(var(--needle));
+  transition: transform 0.15s;
 }
 
 .label {
@@ -505,8 +527,8 @@ button {
   background: var(--veil);
   border: 1px solid #3a3e44;
   box-shadow: var(--shadow-panel);
-  backdrop-filter: blur(6px);
-  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: var(--blur-panel);
+  -webkit-backdrop-filter: var(--blur-panel);
 }
 
 .setup-side {
@@ -619,8 +641,8 @@ button {
   padding: var(--gutter);
   overflow: auto;
   background: rgba(8, 9, 10, 0.72);
-  backdrop-filter: blur(2px);
-  -webkit-backdrop-filter: blur(2px);
+  backdrop-filter: var(--blur-veil);
+  -webkit-backdrop-filter: var(--blur-veil);
 }
 
 .result-inner {
@@ -1032,7 +1054,8 @@ button {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .meter-fill {
+  .meter-fill,
+  .gauge-needle {
     transition: none;
   }
 

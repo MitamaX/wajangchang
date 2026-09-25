@@ -1,5 +1,6 @@
 import { SAW } from '../config.js';
 import { steel } from '../core/canvas.js';
+import { fidelity } from '../core/fidelity.js';
 import { TAU, polar, randomBetween } from '../core/math.js';
 import { Pulse } from './Pulse.js';
 import { Tool } from './Tool.js';
@@ -17,6 +18,7 @@ const VENT_RADIUS = RADIUS * 0.07;
 const VENT_DISTANCE = RADIUS * 0.46;
 const GHOST_LAG = 0.012;
 const GHOSTS = [{ lag: 2, alpha: 0.15 }, { lag: 1, alpha: 0.35 }, { lag: 0, alpha: 1 }];
+const BLADE = GHOSTS.filter(({ lag }) => lag === 0);
 const WHIR_SPEED = 0.3;
 const OUTLINE_WIDTH = 1.2;
 const OUTLINE = 'rgba(0,0,0,0.45)';
@@ -65,7 +67,7 @@ function paintTeeth(context, pixel, angle, speed) {
   context.fillStyle = TOOTH_STEEL;
   context.strokeStyle = OUTLINE;
   context.lineWidth = OUTLINE_WIDTH * pixel;
-  GHOSTS.forEach(({ lag, alpha }) => {
+  (fidelity.profile.effects ? GHOSTS : BLADE).forEach(({ lag, alpha }) => {
     context.save();
     context.globalAlpha *= alpha;
     context.rotate(angle - lag * speed * GHOST_LAG);

@@ -59,3 +59,9 @@ export function sum(values) {
   for (const value of values) total += value;
   return total;
 }
+
+export function median(values) {
+  const sorted = [...values].sort((a, b) => a - b);
+  const middle = sorted.length >> 1;
+  return sorted.length % 2 ? sorted[middle] : (sorted[middle - 1] + sorted[middle]) / 2;
+}

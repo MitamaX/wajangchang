@@ -1,5 +1,6 @@
 import { CELL_METERS, TEXELS_PER_CELL } from '../config.js';
 import { createCanvas } from '../core/canvas.js';
+import { fidelity } from '../core/fidelity.js';
 import { clamp } from '../core/math.js';
 import { paintBackdrop } from './Backdrop.js';
 import { SpillLayer } from './SpillLayer.js';
@@ -147,6 +148,7 @@ export class Renderer {
     session.tools.forEach((tool) => tool.draw(context, camera.scale));
     this.drawFlying(context, session.debris.flying);
     context.setTransform(IDENTITY);
+    if (!fidelity.profile.effects) return;
     this.drawVignette(context, camera.vignette);
     this.drawFlash(context, camera.flash);
   }
@@ -169,6 +171,7 @@ export class Renderer {
   }
 
   drawShadows(context, fragments) {
+    if (!fidelity.profile.shadows) return;
     fragments.forEach((fragment) => this.drawShadow(context, fragment));
     context.globalAlpha = 1;
   }

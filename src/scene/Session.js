@@ -1,4 +1,5 @@
 import { BALL, BLACKHOLE, CELL_METERS, COMPLETION, CUTTER, FRAGMENTS, GRAVITY, IMPACT, KATANA, LAVA, LIGHTNING, PRESS, SAW, SHOCKWAVE, SPECIMEN } from '../config.js';
+import { fidelity } from '../core/fidelity.js';
 import { wholePercent } from '../core/format.js';
 import { TAU, clamp, insidePolygon, lerp, normalize, randomBetween, sum } from '../core/math.js';
 import { Fragment, cellMapper } from '../destruction/Fragment.js';
@@ -626,7 +627,7 @@ export class Session {
   melt(fragment, contact, { x, y, reach }) {
     const { heat } = this.material;
     const [cellX, cellY] = fragment.toCell(x, y);
-    fragment.skin.scorch(cellX, cellY, reach * BALL.charReach, heat.char);
+    if (fidelity.profile.effects) fragment.skin.scorch(cellX, cellY, reach * BALL.charReach, heat.char);
     const molten = this.fracture.carve(fragment.grid, { x: cellX, y: cellY, radius: reach });
     fragment.reshaped = fragment.reshaped || molten.changed;
     this.fallout.melt(contact.x, contact.y, molten.removed.length, heat.ember);
@@ -646,6 +647,7 @@ export class Session {
   }
 
   char(x, y, radius, strength) {
+    if (!fidelity.profile.effects) return;
     this.fragmentsWithin({ x, y, radius }).forEach((fragment) => {
       const [cellX, cellY] = fragment.toCell(x, y);
       fragment.skin.scorch(cellX, cellY, radius / CELL_METERS, strength);
@@ -804,16 +806,20 @@ export class Session {
   scar(fragment, outcome) {
     const { look } = this.material;
     const { skin } = fragment;
-    outcome.dents.forEach((dent) => {
-      skin.pinch(dent.x, dent.y, dent.radius, dent.amount);
-      skin.shadeDent(dent.x, dent.y, dent.radius * 0.8, dent.depth, look.dentGloss);
-    });
-    outcome.marks.forEach((mark) => this.markImpact(skin, mark, look.mark));
+    if (fidelity.profile.effects) this.blemish(skin, outcome, look);
     skin.drawCracks(outcome.segments, look);
     if (outcome.removed.length) this.fallout.spill(fragment, outcome.removed);
     this.stats.crackCells += outcome.length;
     fragment.reshaped = fragment.reshaped || outcome.changed;
     return outcome.length;
+  }
+
+  blemish(skin, { dents, marks }, look) {
+    dents.forEach((dent) => {
+      skin.pinch(dent.x, dent.y, dent.radius, dent.amount);
+      skin.shadeDent(dent.x, dent.y, dent.radius * 0.8, dent.depth, look.dentGloss);
+    });
+    marks.forEach((mark) => this.markImpact(skin, mark, look.mark));
   }
 
   markImpact(skin, mark, style) {
@@ -855,7 +861,7 @@ export class Session {
   }
 
   enforceBudget() {
-    const excess = this.fragments.length - FRAGMENTS.maxBodies;
+    const excess = this.fragments.length - fidelity.profile.bodies;
     if (excess <= 0) return;
     const doomed = new Set([...this.fragments].sort((a, b) => a.cells - b.cells).slice(0, excess));
     doomed.forEach((fragment) => {

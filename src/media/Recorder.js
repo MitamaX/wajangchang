@@ -2,6 +2,7 @@ import { AudioBufferSource, BufferTarget, EncodedVideoPacketSource, Mp4OutputFor
 import { MIX } from '../audio/mixdown.js';
 import { RECORDING } from '../config.js';
 import { createCanvas } from '../core/canvas.js';
+import { fidelity } from '../core/fidelity.js';
 import { Soundtrack } from './Soundtrack.js';
 
 const PROBE = { width: 1280, height: 720 };
@@ -15,7 +16,7 @@ const mp4Output = () => new Output({ format: new Mp4OutputFormat({ fastStart: 'i
 const mp4Blob = (output) => new Blob([output.target.buffer], { type: MP4 });
 
 export function frameSize(aspect) {
-  const long = RECORDING.longEdge;
+  const long = fidelity.profile.longEdge;
   const even = (value) => Math.max(2, Math.round(value / 2) * 2);
   return aspect >= 1 ? { width: long, height: even(long / aspect) } : { width: even(long * aspect), height: long };
 }

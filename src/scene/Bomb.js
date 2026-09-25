@@ -1,5 +1,6 @@
 import { BOMB, GRAVITY } from '../config.js';
 import { radiate, traceRoundRect } from '../core/canvas.js';
+import { fidelity } from '../core/fidelity.js';
 import { TAU, lerp, randomBetween } from '../core/math.js';
 
 const SIZE = BOMB.size;
@@ -91,7 +92,7 @@ export function drawBomb(context, pixel, { x, y, angle = 0, remaining = 1, lit =
   paintShell(context, pixel);
   paintLamp(context, lit);
   const tip = paintFuse(context, pixel, remaining);
-  if (burning) paintSpark(context, pixel, ...tip);
+  if (burning && fidelity.profile.effects) paintSpark(context, pixel, ...tip);
   context.restore();
 }
 

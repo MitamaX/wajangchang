@@ -1,5 +1,6 @@
 import { FIST } from '../config.js';
 import { paintReticle, radiate } from '../core/canvas.js';
+import { fidelity } from '../core/fidelity.js';
 import { TAU, easeOut, lerp, polar, randomBetween } from '../core/math.js';
 import { Cooldown } from './Cooldown.js';
 import { Crack } from './Glass.js';
@@ -81,11 +82,15 @@ export class Fist extends Tool {
 
   draw(context, pixelsPerMeter) {
     const pixel = 1 / pixelsPerMeter;
+    if (fidelity.profile.effects) this.drawImpacts(context, pixel);
+    if (this.present) paintReticle(context, this.aimX, this.aimY, pixel);
+  }
+
+  drawImpacts(context, pixel) {
     this.cracks.forEach((crack) => crack.draw(context, pixel));
     this.bursts.forEach((burst) => {
       if (burst.age < BURST.seconds) paintBurst(context, burst);
       paintRing(context, pixel, burst);
     });
-    if (this.present) paintReticle(context, this.aimX, this.aimY, pixel);
   }
 }

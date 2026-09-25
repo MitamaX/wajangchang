@@ -1,5 +1,6 @@
 import { GRAVITY, GUN } from '../config.js';
 import { radiate } from '../core/canvas.js';
+import { fidelity } from '../core/fidelity.js';
 import { TAU, clamp, easeOut, lerp, normalize, polar, randomBetween } from '../core/math.js';
 import { Crack } from './Glass.js';
 import { Pulse } from './Pulse.js';
@@ -281,19 +282,24 @@ export class Gun extends Tool {
 
   draw(context, pixelsPerMeter) {
     const pixel = 1 / pixelsPerMeter;
-    this.hits.forEach((hit) => paintHit(context, pixel, hit));
-    this.holes.forEach((hole) => hole.draw(context, pixel));
+    const { effects } = fidelity.profile;
+    if (effects) this.drawImpacts(context, pixel);
     if (this.present) this.drawReticle(context, pixel);
     context.save();
     context.globalCompositeOperation = 'lighter';
     this.tracers.forEach((tracer) => this.drawTracer(context, tracer));
     context.restore();
-    this.puffs.forEach((puff) => this.drawSmoke(context, puff));
-    if (this.rise > 0) this.drawGun(context, pixel);
-    this.casings.forEach((casing) => this.drawCasing(context, pixel, casing));
+    if (effects) this.puffs.forEach((puff) => this.drawSmoke(context, puff));
+    if (this.rise > 0) this.drawGun(context, pixel, effects);
+    if (effects) this.casings.forEach((casing) => this.drawCasing(context, pixel, casing));
   }
 
-  drawGun(context, pixel) {
+  drawImpacts(context, pixel) {
+    this.hits.forEach((hit) => paintHit(context, pixel, hit));
+    this.holes.forEach((hole) => hole.draw(context, pixel));
+  }
+
+  drawGun(context, pixel, effects) {
     const frame = this.frame();
     const { flash } = this;
     context.save();
@@ -306,7 +312,7 @@ export class Gun extends Tool {
     });
     this.drawChute(context, pixel, frame);
     this.drawHousing(context, pixel, frame, flash);
-    this.drawFlame(context, frame);
+    if (effects) this.drawFlame(context, frame);
     context.restore();
   }
 

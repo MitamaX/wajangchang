@@ -2,6 +2,7 @@ import { SoundBoard } from '../audio/SoundBoard.js';
 import { COMPLETION, RECORDING, VIEW } from '../config.js';
 import { createCanvas } from '../core/canvas.js';
 import { compactLayout, pixelRatio, prefersReducedMotion } from '../core/display.js';
+import { fidelity } from '../core/fidelity.js';
 import { loadFonts } from '../core/fonts.js';
 import { coverThumbnail } from '../core/images.js';
 import { fileSafe } from '../core/naming.js';
@@ -26,6 +27,7 @@ import { StageInput } from '../ui/StageInput.js';
 import { StatusBar } from '../ui/StatusBar.js';
 import { Toast } from '../ui/Toast.js';
 import { ToolRack } from '../ui/ToolRack.js';
+import { LagMeter } from './LagMeter.js';
 
 const MAX_FRAME_SECONDS = 0.05;
 const THUMB_SIZE = 220;
@@ -47,6 +49,8 @@ const SHARE_NOTES = Object.freeze({
   'handoff-copied': '저장 · 문구 복사 · X 열림',
   handoff: '저장 · X 열림',
 });
+
+const FIDELITY_LABELS = Object.freeze({ full: '기본 모드', lite: '저사양 모드', bare: '최저 모드' });
 
 function pngFile(canvas, name) {
   return new Promise((resolve) => {
@@ -78,6 +82,7 @@ export class App {
     this.frameAspect = 1;
     this.lastFrame = performance.now() / 1000;
     this.carry = 0;
+    this.lag = new LagMeter();
     this.status = new StatusBar();
     this.intake = new ImageIntake({
       canAccept: () => this.phase === Phase.SETUP,
@@ -139,12 +144,27 @@ export class App {
       soundButton.setAttribute('aria-pressed', String(this.sound.on));
       if (this.sound.on) this.sound.unlock();
     });
+    this.fidelityButton = byId('fidelityButton');
+    this.fidelityButton.addEventListener('click', () => fidelity.cycle());
+    fidelity.listen(() => this.adoptFidelity());
+    this.markFidelity();
     window.addEventListener('keydown', (event) => {
       if (event.key === PAUSE_KEY) this.togglePause();
       if (event.target.tagName === 'INPUT' || event.metaKey || event.ctrlKey || event.altKey) return;
       const key = this.rack.toolFor(event.key);
       if (key) this.selectTool(key);
     });
+  }
+
+  markFidelity() {
+    const { level } = fidelity;
+    this.root.dataset.fidelity = level;
+    this.fidelityButton.setAttribute('aria-label', FIDELITY_LABELS[level]);
+  }
+
+  adoptFidelity() {
+    this.markFidelity();
+    this.resize();
   }
 
   resize() {
@@ -288,14 +308,22 @@ export class App {
 
   frame(timestamp) {
     const now = timestamp / 1000;
-    const dt = Math.min(MAX_FRAME_SECONDS, Math.max(0, now - this.lastFrame));
+    const interval = now - this.lastFrame;
+    const dt = Math.min(MAX_FRAME_SECONDS, Math.max(0, interval));
     this.lastFrame = now;
+    this.watchPace(interval);
     try {
       this.tick(dt, now);
     } catch (error) {
       console.error(error);
     }
     requestAnimationFrame((time) => this.frame(time));
+  }
+
+  watchPace(interval) {
+    if (this.phase !== Phase.PLAYING || !fidelity.adapting) return;
+    this.lag.record(interval);
+    if (this.lag.takeLag()) fidelity.degrade();
   }
 
   tick(dt, now) {
@@ -357,7 +385,7 @@ export class App {
       if (session.debris.takeStirred()) this.renderer.restock(this.camera, session.debris.resting);
       this.renderer.bake(this.camera, session.debris.takeSettled());
     }
-    this.camera.update(dt, prefersReducedMotion());
+    this.camera.update(dt, prefersReducedMotion() || !fidelity.profile.effects);
   }
 
   draw() {

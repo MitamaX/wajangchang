@@ -1,3 +1,5 @@
+import { fidelity } from './fidelity.js';
+
 export function createCanvas(width, height) {
   const canvas = document.createElement('canvas');
   canvas.width = Math.max(1, Math.round(width));
@@ -81,6 +83,7 @@ export function strokeLayers(context, pixel, layers) {
 }
 
 export function radiate(context, x, y, radius, stops) {
+  if (!fidelity.profile.effects) return;
   const gradient = context.createRadialGradient(x, y, 0, x, y, radius);
   stops.forEach(([offset, color]) => gradient.addColorStop(offset, color));
   context.save();

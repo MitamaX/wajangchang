@@ -1,5 +1,6 @@
 import { CHARGE, HAMMER, SHATTER } from '../config.js';
 import { steel, traceRoundRect } from '../core/canvas.js';
+import { fidelity } from '../core/fidelity.js';
 import { clamp, easeOut, lerp, randomBetween, rotate } from '../core/math.js';
 import { MagicCircle, glow } from './MagicCircle.js';
 import { Tool } from './Tool.js';
@@ -198,7 +199,7 @@ export class Hammer extends Tool {
     if (!this.visible) return;
     context.save();
     context.translate(this.aimX + GRIP, this.aimY - HEAD.bottom);
-    this.drawSwoosh(context, pixel);
+    if (fidelity.profile.effects) this.drawSwoosh(context, pixel);
     context.rotate(this.lift);
     context.translate(-GRIP, 0);
     drawHandle(context, pixel);

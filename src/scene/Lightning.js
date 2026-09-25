@@ -1,5 +1,6 @@
 import { LIGHTNING } from '../config.js';
 import { paintReticle, radiate, strokeLayers } from '../core/canvas.js';
+import { fidelity } from '../core/fidelity.js';
 import { TAU, clamp, normalize, randomBetween, randomInt, rotate } from '../core/math.js';
 import { Cooldown } from './Cooldown.js';
 import { Tool } from './Tool.js';
@@ -50,12 +51,13 @@ function tracePath(context, path, share = 1) {
 }
 
 function paintChannel(context, pixel, path, brightness, width = 1) {
-  tracePath(context, path);
-  strokeLayers(context, pixel * width, [
+  const core = [CHANNEL.core, `rgba(${ARC_CORE},${brightness})`];
+  const glows = [
     [CHANNEL.halo, `rgba(${ARC},${CHANNEL.haloAlpha * brightness})`],
     [CHANNEL.glow, `rgba(${ARC},${CHANNEL.glowAlpha * brightness})`],
-    [CHANNEL.core, `rgba(${ARC_CORE},${brightness})`],
-  ]);
+  ];
+  tracePath(context, path);
+  strokeLayers(context, pixel * width, fidelity.profile.effects ? [...glows, core] : [core]);
 }
 
 function paintSpark(context, x, y, radius, brightness) {
@@ -145,7 +147,7 @@ class Bolt {
 
   draw(context, pixel) {
     const { brightness } = this;
-    paintCloud(context, this.puffs, this.cloud, brightness * CLOUD.glow, this.origin);
+    if (fidelity.profile.effects) paintCloud(context, this.puffs, this.cloud, brightness * CLOUD.glow, this.origin);
     context.save();
     context.globalCompositeOperation = 'lighter';
     context.lineCap = 'round';
@@ -177,9 +179,13 @@ class Bolt {
   drawStrike(context, pixel, brightness) {
     paintChannel(context, pixel, this.path, brightness);
     this.branches.forEach((branch) => paintChannel(context, pixel, branch, brightness * BRANCH_SHARE, BRANCH_SHARE));
+    if (fidelity.profile.effects) this.drawCrawls(context, pixel);
+    paintSpark(context, this.target.x, this.target.y, SPOT_REACH, brightness);
+  }
+
+  drawCrawls(context, pixel) {
     const crawling = clamp(1 - this.since / (LIGHTNING.boltSeconds * CRAWL.fade * 2), 0, 1);
     this.crawls.forEach((crawl) => paintChannel(context, pixel, crawl, crawling, BRANCH_SHARE * 0.6));
-    paintSpark(context, this.target.x, this.target.y, SPOT_REACH, brightness);
   }
 }
 
@@ -232,7 +238,7 @@ export class Lightning extends Tool {
   draw(context, pixelsPerMeter) {
     const pixel = 1 / pixelsPerMeter;
     this.bolts.forEach((bolt) => bolt.draw(context, pixel));
-    this.drawSky(context);
+    if (fidelity.profile.effects) this.drawSky(context);
     if (this.present) paintReticle(context, this.aimX, this.aimY, pixel);
   }
 

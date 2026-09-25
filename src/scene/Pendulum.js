@@ -1,5 +1,6 @@
 import { GRAVITY, PENDULUM } from '../config.js';
 import { inkOutline, radiate, steel } from '../core/canvas.js';
+import { fidelity } from '../core/fidelity.js';
 import { TAU, clamp, lerp, polar } from '../core/math.js';
 import { Layer } from '../physics/PhysicsWorld.js';
 import { Cooldown } from './Cooldown.js';
@@ -293,7 +294,7 @@ export class Pendulum extends Tool {
 
   drawSwing(context, pixel) {
     const rush = clamp((this.speed - TRAIL.from) / (TRAIL.full - TRAIL.from), 0, 1);
-    if (rush > 0) this.drawBlur(context, pixel, rush);
+    if (rush > 0 && fidelity.profile.effects) this.drawBlur(context, pixel, rush);
     context.save();
     context.translate(0, this.pivotY);
     context.rotate(-this.angle);

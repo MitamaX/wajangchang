@@ -1,5 +1,6 @@
 import { CUTTER } from '../config.js';
 import { strokeLayers } from '../core/canvas.js';
+import { fidelity } from '../core/fidelity.js';
 import { TAU, clamp, easeIn, easeOut, lerp, polar } from '../core/math.js';
 import { Tool } from './Tool.js';
 
@@ -149,7 +150,7 @@ export class Cutter extends Tool {
     paintCutter(context, pixel, outline);
     context.restore();
     const since = press.age - CUTTER.pressSeconds;
-    if (since >= 0 && since < FLASH.seconds) paintFlash(context, pixel, outlineAt(press.shape, press.x, press.y, 1), since);
+    if (since >= 0 && since < FLASH.seconds && fidelity.profile.effects) paintFlash(context, pixel, outlineAt(press.shape, press.x, press.y, 1), since);
   }
 
   drawHover(context, pixel) {

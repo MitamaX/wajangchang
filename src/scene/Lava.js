@@ -1,5 +1,6 @@
 import { GRAVITY, LAVA } from '../config.js';
-import { radiate } from '../core/canvas.js';
+import { radiate, strokeLayers } from '../core/canvas.js';
+import { fidelity } from '../core/fidelity.js';
 import { TAU, clamp, randomBetween, wrap } from '../core/math.js';
 import { Pulse } from './Pulse.js';
 import { Tool } from './Tool.js';
@@ -161,23 +162,17 @@ export class Lava extends Tool {
     if (!this.level && !this.embers.length) return;
     const pixel = 1 / pixelsPerMeter;
     const { halfWidth } = this.room;
-    if (this.level) this.drawPool(context, pixel, halfWidth);
-    this.drawSparks(context, pixel);
+    const { effects } = fidelity.profile;
+    if (this.level) this.drawPool(context, pixel, halfWidth, effects);
+    if (effects) this.drawSparks(context, pixel);
   }
 
-  drawPool(context, pixel, halfWidth) {
+  drawPool(context, pixel, halfWidth, effects) {
     const top = -this.level - LAVA.wave.height * 2;
     const points = [];
     for (let x = -halfWidth; x < halfWidth; x += STEP) points.push([x, this.levelAt(x)]);
     points.push([halfWidth, this.levelAt(halfWidth)]);
-    context.save();
-    context.globalCompositeOperation = 'lighter';
-    const glow = context.createLinearGradient(0, top - GLOW.height, 0, top);
-    glow.addColorStop(0, `rgba(${MAGMA},0)`);
-    glow.addColorStop(1, `rgba(${MAGMA},${GLOW.alpha * Math.min(1, this.level / LAVA.swell)})`);
-    context.fillStyle = glow;
-    context.fillRect(-halfWidth, top - GLOW.height, halfWidth * 2, GLOW.height);
-    context.restore();
+    if (effects) this.drawHeat(context, top, halfWidth);
     context.save();
     const body = context.createLinearGradient(0, top, 0, 0);
     body.addColorStop(0, `rgba(${HOT},0.97)`);
@@ -193,20 +188,27 @@ export class Lava extends Tool {
     context.clip();
     this.drawVeins(context, pixel, halfWidth);
     this.drawCrust(context, pixel, halfWidth);
-    this.drawBubbles(context, pixel, false);
+    if (effects) this.drawBubbles(context, pixel, false);
     context.restore();
     context.save();
     context.globalCompositeOperation = 'lighter';
     context.lineJoin = 'round';
     context.beginPath();
     points.forEach(([x, y]) => context.lineTo(x, y));
-    context.strokeStyle = `rgba(${HOT},0.35)`;
-    context.lineWidth = RIM.glow * pixel;
-    context.stroke();
-    context.strokeStyle = `rgba(${HOT},0.95)`;
-    context.lineWidth = RIM.core * pixel;
-    context.stroke();
-    this.drawBubbles(context, pixel, true);
+    const core = [RIM.core, `rgba(${HOT},0.95)`];
+    strokeLayers(context, pixel, effects ? [[RIM.glow, `rgba(${HOT},0.35)`], core] : [core]);
+    if (effects) this.drawBubbles(context, pixel, true);
+    context.restore();
+  }
+
+  drawHeat(context, top, halfWidth) {
+    context.save();
+    context.globalCompositeOperation = 'lighter';
+    const glow = context.createLinearGradient(0, top - GLOW.height, 0, top);
+    glow.addColorStop(0, `rgba(${MAGMA},0)`);
+    glow.addColorStop(1, `rgba(${MAGMA},${GLOW.alpha * Math.min(1, this.level / LAVA.swell)})`);
+    context.fillStyle = glow;
+    context.fillRect(-halfWidth, top - GLOW.height, halfWidth * 2, GLOW.height);
     context.restore();
   }
 
