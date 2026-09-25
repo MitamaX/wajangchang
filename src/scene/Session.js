@@ -1,4 +1,4 @@
-import { BALL, CELL_METERS, COMPLETION, CUTTER, FRAGMENTS, GRAVITY, IMPACT, KATANA, LAVA, LIGHTNING, PRESS, SAW, SHOCKWAVE, SPECIMEN } from '../config.js';
+import { BALL, BLACKHOLE, CELL_METERS, COMPLETION, CUTTER, FRAGMENTS, GRAVITY, IMPACT, KATANA, LAVA, LIGHTNING, PRESS, SAW, SHOCKWAVE, SPECIMEN } from '../config.js';
 import { wholePercent } from '../core/format.js';
 import { TAU, clamp, insidePolygon, lerp, normalize, randomBetween, sum } from '../core/math.js';
 import { Fragment, cellMapper } from '../destruction/Fragment.js';
@@ -60,7 +60,7 @@ export class Session {
     this.tools = Object.values(this.kit);
     this.tool = this.kit[tool];
     this.fragments = [];
-    this.stats = { strikes: 0, crackCells: 0 };
+    this.stats = { newtons: 0, crackCells: 0 };
     this.clock = 0;
     this.startedAt = null;
     this.endedAt = null;
@@ -203,9 +203,12 @@ export class Session {
     return !this.debris.busy && !this.physics.hasMotion();
   }
 
-  engage(first) {
+  engage() {
     if (!this.started) this.onEngage();
-    if (first) this.stats.strikes++;
+  }
+
+  exert(newtons) {
+    this.stats.newtons += newtons;
   }
 
   touching(x, y, radius) {
@@ -218,7 +221,7 @@ export class Session {
   impactArea(blow) {
     const landed = this.hitArea(blow);
     if (landed) {
-      this.stats.strikes++;
+      this.exert(blow.newtons);
       this.sound.cue('strike', this.material.key, blow.strength);
     }
     return landed;
@@ -369,7 +372,8 @@ export class Session {
   grind(cut) {
     const bitten = this.touching(cut.x, cut.y, cut.radius);
     if (!bitten.length) return null;
-    this.engage(cut.first);
+    this.engage();
+    this.exert(SAW.newtons);
     const recoil = bitten
       .map(({ fragment, contact }) => (fragment.body ? this.bite(fragment, contact, cut) : [0, 0]))
       .reduce(([sumX, sumY], [kickX, kickY]) => [sumX + kickX, sumY + kickY], [0, 0]);
@@ -418,7 +422,7 @@ export class Session {
   }
 
   sever(marks) {
-    if (this.cut(marks)) this.stats.strikes++;
+    if (this.cut(marks)) this.exert(KATANA.newtons);
     this.shock = KATANA.severShock;
     this.sound.cue('sever');
   }
@@ -483,12 +487,13 @@ export class Session {
       .filter(Boolean);
     if (!bearings.length) return null;
     const crushed = bearings.some((bearing) => bearing.crushed);
-    if (crushed) this.grindDown(stroke);
+    if (crushed) this.grindDown();
     return { resistance: this.material.press.resistance, coverage: sum(coverage) / PRESS.bins, crushed };
   }
 
-  grindDown({ first }) {
-    this.engage(first);
+  grindDown() {
+    this.engage();
+    this.exert(PRESS.newtons);
     this.shock = PRESS.shock;
     this.sound.cue('crunch', this.material.key);
   }
@@ -606,11 +611,12 @@ export class Session {
     return { x, y: bottom, burst: PRESS.burst, strength, aim: (center) => normalize(Math.sign(center.x - x) || 1, -PRESS.squeeze) };
   }
 
-  sear({ x, y, radius, first }) {
+  sear({ x, y, radius }) {
     const reach = radius / CELL_METERS + this.material.heat.melt;
     const touched = this.touching(x, y, reach * CELL_METERS);
     if (!touched.length) return false;
-    this.engage(first);
+    this.engage();
+    this.exert(BALL.newtons);
     touched.forEach(({ fragment, contact }) => {
       if (fragment.body) this.melt(fragment, contact, { x, y, reach });
     });
@@ -662,11 +668,12 @@ export class Session {
     this.strike(blow);
   }
 
-  devour({ x, y, radius, first }) {
+  devour({ x, y, radius }) {
     this.debris.swallow(x, y, radius * SWALLOW_REACH);
     const touched = this.touching(x, y, radius);
     if (!touched.length) return false;
-    this.engage(first);
+    this.engage();
+    this.exert(BLACKHOLE.feedNewtons);
     const reach = radius / CELL_METERS;
     touched.forEach(({ fragment }) => {
       if (!fragment.body) return;
@@ -710,7 +717,8 @@ export class Session {
     this.shock = CUTTER.shock;
     this.sound.cue('cutter');
     if (!popped.length) return;
-    this.engage(true);
+    this.engage();
+    this.exert(CUTTER.newtons);
     this.sound.cue('pop');
   }
 
@@ -736,7 +744,9 @@ export class Session {
   }
 
   immerse(surface) {
-    return [...this.fragments].filter((fragment) => fragment.body && this.scald(fragment, surface)).length > 0;
+    const melted = [...this.fragments].filter((fragment) => fragment.body && this.scald(fragment, surface)).length > 0;
+    if (melted) this.exert(LAVA.newtons);
+    return melted;
   }
 
   scald(fragment, surface) {

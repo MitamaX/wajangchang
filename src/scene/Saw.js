@@ -162,7 +162,7 @@ export class Saw extends Tool {
       return;
     }
     if (!this.bites.tick(dt)) return;
-    const bite = this.onGrind({ x: this.bladeX, y: this.bladeY, radius: RADIUS, first: !this.biting });
+    const bite = this.onGrind({ x: this.bladeX, y: this.bladeY, radius: RADIUS });
     this.biting = Boolean(bite);
     if (bite) this.recoil.kick(bite.recoil);
   }

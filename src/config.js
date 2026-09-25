@@ -38,6 +38,7 @@ export const HAMMER = Object.freeze({
 });
 
 export const CHARGE = Object.freeze({
+  newtons: [2e3, 4e4],
   seconds: 3.6,
   tiers: [0.2, 0.4, 0.6, 0.8, 1],
   minRadius: 0.03,
@@ -70,11 +71,13 @@ export const BOMB = Object.freeze({
     burst: 2.6,
     blast: Object.freeze({ reach: 0.5, speed: 7, heft: 0.35 }),
     force: 0.85,
+    newtons: 5e5,
     cue: 'explode',
   }),
 });
 
 export const SAW = Object.freeze({
+  newtons: 4e2,
   radius: 0.11,
   spin: 14,
   spool: 12,
@@ -91,6 +94,7 @@ export const SAW = Object.freeze({
 });
 
 export const KATANA = Object.freeze({
+  newtons: 6e3,
   delay: 0.9,
   pause: 0.35,
   tempo: 5,
@@ -118,6 +122,7 @@ export const GANTRY = Object.freeze({
 });
 
 export const PRESS = Object.freeze({
+  newtons: 1.5e6,
   halfWidth: 0.17,
   plateHeight: 0.06,
   rodWidth: 0.07,
@@ -148,6 +153,7 @@ export const PRESS = Object.freeze({
 });
 
 export const BALL = Object.freeze({
+  newtons: 3e5,
   radius: 0.085,
   surface: Object.freeze({ density: 900, friction: 0.5, restitution: 0.12 }),
   reloadSeconds: 1,
@@ -189,6 +195,7 @@ export const GUN = Object.freeze({
     burst: 0.9,
     contact: 0.004,
     blast: Object.freeze({ reach: 0.06, speed: 1.4, heft: 0.2 }),
+    newtons: 1.2e4,
     cue: 'gunshot',
     shock: Object.freeze({ trauma: 0.14, kick: 0.05, punch: 0.004, flash: 0.03 }),
   }),
@@ -221,6 +228,7 @@ export const LIGHTNING = Object.freeze({
     contact: 0.01,
     blast: Object.freeze({ reach: 0.3, speed: 3.5, heft: 0.3 }),
     force: 0.65,
+    newtons: 2.5e5,
     cue: 'thunder',
   }),
 });
@@ -252,11 +260,14 @@ export const NUKE = Object.freeze({
     blast: Object.freeze({ reach: 2.5, speed: 2, heft: 0.5 }),
     force: 1,
     shock: Object.freeze({ quake: 0.8, hitStop: 0.32 }),
+    newtons: 8.4e15,
     cue: 'nuke',
   }),
 });
 
 export const BLACKHOLE = Object.freeze({
+  feedNewtons: 5e7,
+  collapseNewtons: [1e8, 1e10],
   growSeconds: 2.5,
   follow: 6,
   horizon: [0.016, 0.052],
@@ -301,11 +312,13 @@ export const FIST = Object.freeze({
     contact: 0.025,
     blast: Object.freeze({ reach: 0.3, speed: 2.5, heft: 0.35 }),
     force: 0.4,
+    newtons: 3e3,
     cue: 'punch',
   }),
 });
 
 export const PENDULUM = Object.freeze({
+  newtons: [1e3, 5e4],
   radius: 0.075,
   surface: Object.freeze({ density: 1, friction: 0.4, restitution: 0.1 }),
   clearance: 0.03,
@@ -330,6 +343,7 @@ export const PENDULUM = Object.freeze({
 });
 
 export const CUTTER = Object.freeze({
+  newtons: 2.5e2,
   size: 0.09,
   pressSeconds: 0.12,
   holdSeconds: 0.2,
@@ -342,6 +356,7 @@ export const CUTTER = Object.freeze({
 });
 
 export const LAVA = Object.freeze({
+  newtons: 2e4,
   rise: 0.08,
   drain: 0.3,
   depth: 0.22,

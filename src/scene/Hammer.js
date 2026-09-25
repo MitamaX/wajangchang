@@ -182,6 +182,7 @@ export class Hammer extends Tool {
       contact: HAMMER.headWidth / 2,
       blast: { reach: radius * CHARGE.blastReach, speed: CHARGE.blastSpeed * charge, heft: CHARGE.blastHeft },
       force: charge,
+      newtons: lerp(...CHARGE.newtons, charge),
       cue: 'discharge',
     };
   }

@@ -6,8 +6,8 @@ export const FONT = Object.freeze({
   system: '"Segoe UI","Malgun Gothic","Apple SD Gothic Neo","Noto Sans KR",sans-serif',
 });
 
-const BASE_GLYPHS = '와장창파기보고서관리대장소월화수목토요일알람응답없음재질유리나무돌금속타격소요시간파편균열파괴율판정회개초분년';
-const DIGITS = '0123456789:.%-m';
+const BASE_GLYPHS = '와장창파기보고서관리대장소월화수목토요일자알람응답없음재질유리나무돌금속총충격소요시간파편균열파괴율판정개초분년';
+const DIGITS = '0123456789:.,%-mkMGN ';
 const FACES = [
   '400 64px "Gasoek One"',
   '800 40px "Nanum Myeongjo"',

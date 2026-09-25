@@ -1,6 +1,8 @@
 const MINUTE = 60;
+const FORCE_STEP = 1000;
+const FORCE_UNITS = ['N', 'kN', 'MN', 'GN'];
+const forceFormat = new Intl.NumberFormat('ko-KR', { maximumFractionDigits: 1 });
 const pad = (value, size = 2) => String(value).padStart(size, '0');
-const WEEKDAYS = '일월화수목금토';
 
 export const numberFormat = new Intl.NumberFormat('ko-KR');
 
@@ -19,7 +21,12 @@ export function spokenTime(seconds) {
 }
 
 export function stampDate(date) {
-  return `${date.getFullYear()}. ${date.getMonth() + 1}. ${date.getDate()}. (${WEEKDAYS[date.getDay()]}) ${pad(date.getHours())}:${pad(date.getMinutes())}`;
+  return `${date.getFullYear()}. ${date.getMonth() + 1}. ${date.getDate()}.`;
+}
+
+export function forceText(newtons) {
+  const tier = Math.min(FORCE_UNITS.length - 1, Math.max(0, Math.floor(Math.log10(Math.max(newtons, 1)) / 3)));
+  return `${forceFormat.format(newtons / FORCE_STEP ** tier)} ${FORCE_UNITS[tier]}`;
 }
 
 export function longDate(date) {

@@ -49,7 +49,6 @@ export class BlackHole extends Tool {
     this.onHum = onHum;
     this.onCollapse = onCollapse;
     this.holding = false;
-    this.feeding = false;
     this.x = 0;
     this.y = 0;
     this.growth = 0;
@@ -121,6 +120,7 @@ export class BlackHole extends Tool {
       strength: lerp(...BLACKHOLE.collapseStrength, size),
       blast: { reach, speed: lerp(...BLACKHOLE.collapseSpeed, size), heft: BLACKHOLE.heft },
       force: size,
+      newtons: lerp(...BLACKHOLE.collapseNewtons, size),
     };
   }
 
@@ -135,7 +135,7 @@ export class BlackHole extends Tool {
     this.onSweep((x, y) => this.thrust(x, y, dt));
     if (this.hums.tick(dt)) this.onHum(BLACKHOLE.humSeconds, this.size);
     this.gather(dt);
-    if (this.feeds.tick(dt)) this.feeding = this.onFeed({ x: this.x, y: this.y, radius: this.horizon, first: !this.feeding });
+    if (this.feeds.tick(dt)) this.onFeed({ x: this.x, y: this.y, radius: this.horizon });
   }
 
   thrust(x, y, dt) {

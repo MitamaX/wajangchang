@@ -1,5 +1,5 @@
 import { CELL_METERS } from '../config.js';
-import { longDate, numberFormat, serialNumber, spokenTime, stampDate, wholePercent } from '../core/format.js';
+import { forceText, longDate, numberFormat, serialNumber, spokenTime, stampDate, wholePercent } from '../core/format.js';
 import { randomInt } from '../core/math.js';
 
 const TITLES = Object.freeze({ glass: '산산조각 장인', wood: '장작 패기 달인', stone: '채석장 반장', metal: '대장장이' });
@@ -7,8 +7,8 @@ const TASTER_PERCENT = 30;
 const ROWS = [
   ['파기 대상', 'name', false],
   ['재질', 'material', false],
-  ['파기 일시', 'date', false],
-  ['타격', 'strikes', true],
+  ['파기 일자', 'date', false],
+  ['총 충격', 'force', true],
   ['소요 시간', 'time', false],
   ['파편', 'pieces', true],
   ['균열', 'cracks', true],
@@ -27,7 +27,7 @@ export function buildReport({ session, name, early }) {
     name,
     material: session.material.label,
     date: stampDate(now),
-    strikes: `${numberFormat.format(session.stats.strikes)}회`,
+    force: forceText(session.stats.newtons),
     time: spokenTime(session.elapsed),
     pieces: `${numberFormat.format(session.pieceCount)}개`,
     cracks: `${(session.stats.crackCells * CELL_METERS).toFixed(2)} m`,

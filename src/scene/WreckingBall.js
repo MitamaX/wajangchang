@@ -227,7 +227,7 @@ export class WreckingBall extends Tool {
   }
 
   sear(ball) {
-    ball.searing = this.onSear({ x: ball.x, y: ball.y, radius: BALL.radius, first: !ball.touched });
+    ball.searing = this.onSear({ x: ball.x, y: ball.y, radius: BALL.radius });
     if (ball.searing && !ball.touched) this.onContact();
     ball.touched = ball.touched || ball.searing;
   }

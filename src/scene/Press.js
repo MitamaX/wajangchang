@@ -21,7 +21,6 @@ export class Press extends Tool {
     this.gantry = new Gantry(room);
     this.bottom = null;
     this.holding = false;
-    this.touching = false;
     this.landed = false;
     this.crushing = null;
     this.crushes = new Pulse(PRESS.crushSeconds);
@@ -65,7 +64,6 @@ export class Press extends Tool {
   windUp() {
     this.holding = true;
     this.gantry.send(this.aimX);
-    this.touching = false;
     this.crushes.reset();
   }
 
@@ -105,8 +103,7 @@ export class Press extends Tool {
       this.onLand(x);
     }
     if (!this.crushes.tick(dt)) return;
-    this.crushing = this.onCrush({ x, halfWidth: PRESS.halfWidth, bottom: this.bottom, first: !this.touching });
-    this.touching = this.touching || Boolean(this.crushing?.crushed);
+    this.crushing = this.onCrush({ x, halfWidth: PRESS.halfWidth, bottom: this.bottom });
   }
 
   ascend(dt) {

@@ -111,7 +111,7 @@ export const ARSENAL = Object.freeze([
     key: 'lava',
     label: '용암',
     arm: (session) => new Lava(session.room, {
-      onEngage: () => session.engage(true),
+      onEngage: () => session.engage(),
       onSweep: (thrust) => session.sweep(thrust, LAVA.heft),
       onMelt: (surface) => session.immerse(surface),
       onChurn: (cadence) => session.sound.cue('lava', cadence),

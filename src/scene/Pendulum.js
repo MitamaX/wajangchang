@@ -248,6 +248,7 @@ export class Pendulum extends Tool {
       contact: RADIUS,
       strength: lerp(...strength, force),
       force,
+      newtons: lerp(...PENDULUM.newtons, force),
     });
   }
 
