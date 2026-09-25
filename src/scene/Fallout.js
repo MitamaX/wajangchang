@@ -13,7 +13,7 @@ const EMBER = 'rgba(255,150,60,1)';
 const HEADED_SPREAD = 0.45;
 const CELLS_PER_EMBER = 12;
 const MAX_EMBERS = 16;
-const POWDER = Object.freeze({ grains: 4500, size: [0.7, 1.2], speed: [1, 3.5], lift: [0.5, 2.5], cellsPerPuff: 120 });
+const POWDER = Object.freeze({ grains: 4500, size: [0.7, 1.2], speed: [2.5, 7], lift: [0.5, 2], cellsPerPuff: 120 });
 
 const SPRAYS = Object.freeze({
   glint: { speed: [0.3, 1.4], size: [0.0015, 0.003] },
