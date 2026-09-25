@@ -22,6 +22,7 @@ const BLAST_LIFT = 0.7;
 const SWALLOW_REACH = 1.5;
 const CRUMB_STRIDE = 4;
 const CRUMB_REACH = 0.012;
+const FRONT_ROUGHNESS = 0.12;
 
 function distanceToSegment(px, py, ax, ay, bx, by) {
   const dx = bx - ax;
@@ -67,6 +68,7 @@ export class Session {
     this.shock = null;
     this.stall = 0;
     this.frozen = false;
+    this.fronts = [];
     this.spawn();
     this.baseline = this.concentration();
     this.destruction = 0;
@@ -175,6 +177,7 @@ export class Session {
     this.frozen = this.tools.some((tool) => tool.freezing);
     this.tools.forEach((tool) => tool.update(dt));
     if (this.frozen) return;
+    this.advanceFronts(dt);
     const launch = new Map(this.fragments.map((fragment) => [fragment, fragment.body.linvel()]));
     const simulated = this.physics.advance(dt, (handleA, handleB, impulse) => this.ledger.record(handleA, handleB, impulse));
     this.resolveImpacts((fragment) => this.jolt(fragment, launch.get(fragment), simulated));
@@ -225,7 +228,7 @@ export class Session {
     const landed = this.impactArea(blow);
     const grounded = blow.y + blow.radius >= -FLOOR_TOLERANCE;
     if (grounded) this.pound(blow);
-    if (blow.rubble) this.grind(blow);
+    if (blow.vaporize) this.fronts.push({ x: blow.x, y: blow.y, radius: 0, ...blow.vaporize });
     if (!landed && !grounded) this.sound.cue('miss');
     const { hitStop, ...shock } = { ...shockOf(blow.force, landed || grounded), ...blow.shock };
     this.lastStrike = this.clock;
@@ -235,11 +238,22 @@ export class Session {
     this.blast(blow);
   }
 
-  grind({ x, y, rubble, blast: { reach } }) {
-    const spacing = rubble / CELL_METERS;
-    this.fragmentsWithin({ x, y, radius: reach }).forEach((fragment) => {
-      if (fragment.body) this.apply(fragment, [this.fracture.pulverize(fragment.grid, spacing)], { x, y, burst: 0, strength: 0 });
+  advanceFronts(dt) {
+    this.fronts = this.fronts.filter((front) => {
+      front.radius += front.speed * dt;
+      this.fragmentsWithin(front).forEach((fragment) => this.dissolve(fragment, front));
+      return front.radius < front.reach;
     });
+  }
+
+  dissolve(fragment, front) {
+    if (!fragment.body) return;
+    const [cellX, cellY] = fragment.toCell(front.x, front.y);
+    const removed = fragment.grid.carve(cellX, cellY, front.radius / CELL_METERS, FRONT_ROUGHNESS);
+    if (!removed.length) return;
+    this.fallout.disintegrate(fragment, removed, front);
+    fragment.reshaped = true;
+    this.split(fragment, { x: front.x, y: front.y, burst: 0, strength: 0 });
   }
 
   hitArea(blow) {

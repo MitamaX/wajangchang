@@ -1,5 +1,5 @@
 import { CELL_METERS } from '../config.js';
-import { clamp, randomBetween } from '../core/math.js';
+import { clamp, normalize, randomBetween } from '../core/math.js';
 import { velocityAt, worldFromCell } from '../destruction/Fragment.js';
 
 const UPWARD = -Math.PI / 2;
@@ -13,6 +13,7 @@ const EMBER = 'rgba(255,150,60,1)';
 const HEADED_SPREAD = 0.45;
 const CELLS_PER_EMBER = 12;
 const MAX_EMBERS = 16;
+const POWDER = Object.freeze({ grains: 4500, size: [0.7, 1.2], speed: [1, 3.5], lift: [0.5, 2.5], cellsPerPuff: 120 });
 
 const SPRAYS = Object.freeze({
   glint: { speed: [0.3, 1.4], size: [0.0015, 0.003] },
@@ -76,6 +77,26 @@ export class Fallout {
     }
   }
 
+  disintegrate(fragment, removed, { x: fromX, y: fromY }) {
+    const pose = fragment.pose();
+    const { width } = fragment.grid;
+    const stride = Math.max(1, this.specimen.totalCells / POWDER.grains);
+    const grain = CELL_METERS * Math.sqrt(stride);
+    const puffEvery = Math.max(stride, POWDER.cellsPerPuff);
+    for (let i = randomBetween(0, stride); i < removed.length; i += stride) {
+      const index = removed[Math.floor(i)];
+      const cellX = (index % width) + 0.5;
+      const cellY = Math.floor(index / width) + 0.5;
+      const [x, y] = worldFromCell(pose, cellX, cellY);
+      const [vx, vy] = velocityAt(pose, x, y);
+      const [outX, outY] = normalize(x - fromX, y - fromY);
+      const speed = randomBetween(...POWDER.speed);
+      const color = this.specimen.colorAt(fragment.originX + cellX, fragment.originY + cellY);
+      this.chip(x, y, vx + outX * speed, vy + outY * speed - randomBetween(...POWDER.lift), grain * randomBetween(...POWDER.size), color, 'powder');
+      if (Math.random() < stride / puffEvery) this.debris.spray('dust', x, y, { ...SPRAYS.dust, count: 1, color: this.look.dustColor });
+    }
+  }
+
   crumble({ x, y, vx, vy, cells, colorX, colorY }) {
     const count = clamp(Math.round(cells / CELLS_PER_CHIP), 1, MAX_CRUMB_CHIPS);
     const size = Math.sqrt(cells / count) * CELL_METERS * 0.6;
@@ -87,8 +108,8 @@ export class Fallout {
     }
   }
 
-  chip(x, y, vx, vy, size, color) {
-    this.debris.add('chip', { x, y, vx, vy, size, color });
+  chip(x, y, vx, vy, size, color, kind = 'chip') {
+    this.debris.add(kind, { x, y, vx, vy, size, color });
     this.chips++;
   }
 }

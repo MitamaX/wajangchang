@@ -1,8 +1,8 @@
 import { GRAVITY } from '../config.js';
 import { TAU, clamp, randomBetween, randomInt } from '../core/math.js';
 
-const MAX_FLYING = 2400;
-const MAX_RESTING = 1600;
+const MAX_FLYING = 6000;
+const MAX_RESTING = 6000;
 const SETTLE_SPEED = 0.25;
 const FLOOR_SLIDE = 0.6;
 const SPLINTER_STRETCH = 3.2;
@@ -11,6 +11,7 @@ const SPIN = 14;
 const KINDS = Object.freeze({
   chip: { gravity: 1, drag: 0.1, bounce: 0.28, life: null, solid: true, glow: false },
   splinter: { gravity: 1, drag: 0.3, bounce: 0.2, life: null, solid: true, glow: false },
+  powder: { gravity: 0.7, drag: 1.4, bounce: 0.1, life: null, solid: true, glow: false, grain: true },
   dust: { gravity: 0.06, drag: 2.6, bounce: 0, life: [0.5, 1.3], solid: false, glow: false, grow: 0.9 },
   glint: { gravity: 0.5, drag: 1.1, bounce: 0.3, life: [0.2, 0.55], solid: false, glow: true },
   spark: { gravity: 0.6, drag: 1.3, bounce: 0.4, life: [0.12, 0.35], solid: false, glow: true },
@@ -99,7 +100,7 @@ export class Debris {
       spin: randomBetween(-SPIN, SPIN),
       age: 0,
       life: spec.life ? randomBetween(spec.life[0], spec.life[1]) : Infinity,
-      outline: spec.solid ? shardOutline(kind) : null,
+      outline: spec.solid && !spec.grain ? shardOutline(kind) : null,
     });
   }
 

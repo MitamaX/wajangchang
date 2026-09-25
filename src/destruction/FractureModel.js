@@ -1,5 +1,5 @@
 import { CrackGrower } from './CrackGrower.js';
-import { TAU, clamp, gaussian, lerp, randomBetween, randomSign, sum } from '../core/math.js';
+import { TAU, gaussian, lerp, randomBetween, randomSign, sum } from '../core/math.js';
 
 const ENTRY_SEARCH_CELLS = 8;
 const SEARCH_STEP = 0.5;
@@ -13,7 +13,6 @@ const DENT_FATIGUE = 0.6;
 const SHATTER_REACH = 1.15;
 const RAY_WOBBLE = 0.3;
 const KERF_ROUGHNESS = 0.08;
-const RUBBLE_WOBBLE = 0.28;
 
 const polar = (angle, pull) => ({ x: Math.cos(angle), y: Math.sin(angle), pull });
 const blankOutcome = (point) => ({ point, segments: [], removed: [], dents: [], marks: [], length: 0, changed: false });
@@ -30,14 +29,6 @@ function pointAtRadius(path, center, radius) {
     previous = distance;
   }
   return null;
-}
-
-function seamHeight(points, step) {
-  return (x) => {
-    const i = clamp(Math.floor((x - points[0][0]) / step), 0, points.length - 2);
-    const [[fromX, fromY], [toX, toY]] = [points[i], points[i + 1]];
-    return lerp(fromY, toY, (x - fromX) / (toX - fromX));
-  };
 }
 
 export class FractureModel {
@@ -122,37 +113,6 @@ export class FractureModel {
     const radii = Array.from({ length: rings }, (_, i) => (radius * (i + 1)) / (rings + 1));
     this.weave(grower, point, spokes, radii, 1);
     this.record(outcome, grower);
-  }
-
-  pulverize(grid, spacing) {
-    const outcome = blankOutcome(null);
-    const trace = (points) => {
-      for (let i = 1; i < points.length; i++) {
-        const [[ax, ay], [bx, by]] = [points[i - 1], points[i]];
-        grid.cutSegment(ax, ay, bx, by, false);
-        outcome.segments.push(ax, ay, bx, by);
-        outcome.length += Math.hypot(bx - ax, by - ay);
-      }
-    };
-    const wobble = () => randomBetween(-RUBBLE_WOBBLE, RUBBLE_WOBBLE) * spacing;
-    const step = spacing / 2;
-    const rows = Math.max(1, Math.round(grid.height / spacing));
-    const seams = Array.from({ length: rows + 1 }, (_, row) => {
-      if (row === 0) return () => -1;
-      if (row === rows) return () => grid.height + 1;
-      const points = Array.from({ length: Math.ceil((grid.width + 2) / step) + 1 }, (_, i) => [i * step - 1, (row * grid.height) / rows + wobble()]);
-      trace(points);
-      return seamHeight(points, step);
-    });
-    for (let row = 0; row < rows; row++) {
-      const [top, bottom] = [seams[row], seams[row + 1]];
-      for (let x = randomBetween(0, spacing); x < grid.width; x += spacing) {
-        const lean = wobble();
-        trace([[x, top(x) - 1], [x + lean / 2, (top(x) + bottom(x + lean)) / 2], [x + lean, bottom(x + lean) + 1]]);
-      }
-    }
-    outcome.changed = outcome.length > 0;
-    return outcome;
   }
 
   record(outcome, grower) {

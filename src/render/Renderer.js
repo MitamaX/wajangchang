@@ -38,10 +38,20 @@ function traceShard(context, particle) {
   context.closePath();
 }
 
-function paintSolid(context, particle) {
+function paintShard(context, particle) {
   traceShard(context, particle);
   context.fillStyle = particle.color;
   context.fill();
+}
+
+function paintGrain(context, { x, y, size, color }) {
+  context.fillStyle = color;
+  context.fillRect(x - size / 2, y - size / 2, size, size);
+}
+
+function paintSolid(context, particle) {
+  if (particle.spec.grain) paintGrain(context, particle);
+  else paintShard(context, particle);
 }
 
 function paintHaze(context, particle) {
