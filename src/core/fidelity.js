@@ -1,7 +1,8 @@
 import { FIDELITY } from '../config.js';
 
 const STORAGE_KEY = 'wajangchang.fidelity';
-const LEVELS = Object.keys(FIDELITY);
+const { options, presets } = FIDELITY;
+const KEYS = Object.keys(options);
 
 function guarded(access) {
   try {
@@ -13,41 +14,38 @@ function guarded(access) {
 
 const recall = () => guarded(() => JSON.parse(localStorage.getItem(STORAGE_KEY)));
 
-const store = (choice) => guarded(() => localStorage.setItem(STORAGE_KEY, JSON.stringify(choice)));
+const store = (profile) => guarded(() => localStorage.setItem(STORAGE_KEY, JSON.stringify(profile)));
+
+const valid = (profile) => Boolean(profile) && KEYS.every((key) => options[key].includes(profile[key]));
+
+const pick = (profile) => Object.fromEntries(KEYS.map((key) => [key, profile[key]]));
+
+const matches = (profile, preset) => KEYS.every((key) => profile[key] === preset[key]);
 
 class Fidelity {
   constructor() {
     const saved = recall();
-    const known = LEVELS.includes(saved?.level);
-    this.level = known ? saved.level : LEVELS[0];
-    this.pinned = known && saved.pinned === true;
+    this.settled = valid(saved);
+    this.profile = this.settled ? pick(saved) : presets.full;
     this.listener = null;
   }
 
-  get profile() {
-    return FIDELITY[this.level];
+  get preset() {
+    return Object.keys(presets).find((key) => matches(this.profile, presets[key])) ?? null;
   }
 
-  get rank() {
-    return LEVELS.indexOf(this.level);
+  adopt(preset) {
+    this.update(presets[preset]);
   }
 
-  get adapting() {
-    return !this.pinned && this.rank < LEVELS.length - 1;
+  tune(key, value) {
+    this.update({ ...this.profile, [key]: value });
   }
 
-  cycle() {
-    this.pinned = true;
-    this.select((this.rank + 1) % LEVELS.length);
-  }
-
-  degrade() {
-    this.select(this.rank + 1);
-  }
-
-  select(rank) {
-    this.level = LEVELS[rank];
-    store({ level: this.level, pinned: this.pinned });
+  update(profile) {
+    this.profile = profile;
+    this.settled = true;
+    store(profile);
     if (this.listener) this.listener();
   }
 

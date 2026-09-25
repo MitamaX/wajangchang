@@ -22,12 +22,12 @@ import { byId } from '../ui/dom.js';
 import { ImageIntake } from '../ui/ImageIntake.js';
 import { PauseMenu } from '../ui/PauseMenu.js';
 import { ResultDialog } from '../ui/ResultDialog.js';
+import { FidelityDialog } from '../ui/FidelityDialog.js';
 import { SetupPanel } from '../ui/SetupPanel.js';
 import { StageInput } from '../ui/StageInput.js';
 import { StatusBar } from '../ui/StatusBar.js';
 import { Toast } from '../ui/Toast.js';
 import { ToolRack } from '../ui/ToolRack.js';
-import { LagMeter } from './LagMeter.js';
 
 const MAX_FRAME_SECONDS = 0.05;
 const THUMB_SIZE = 220;
@@ -49,8 +49,6 @@ const SHARE_NOTES = Object.freeze({
   'handoff-copied': '저장 · 문구 복사 · X 열림',
   handoff: '저장 · X 열림',
 });
-
-const FIDELITY_LABELS = Object.freeze({ full: '기본 모드', lite: '저사양 모드', bare: '최저 모드' });
 
 function pngFile(canvas, name) {
   return new Promise((resolve) => {
@@ -82,7 +80,6 @@ export class App {
     this.frameAspect = 1;
     this.lastFrame = performance.now() / 1000;
     this.carry = 0;
-    this.lag = new LagMeter();
     this.status = new StatusBar();
     this.intake = new ImageIntake({
       canAccept: () => this.phase === Phase.SETUP,
@@ -105,6 +102,10 @@ export class App {
       onRestart: () => this.restart(),
       onReset: () => this.ready(),
       onQuit: () => this.finish(true),
+    });
+    this.fidelityDialog = new FidelityDialog({
+      onPreset: (preset) => fidelity.adopt(preset),
+      onTune: (key, value) => fidelity.tune(key, value),
     });
     this.input = new StageInput(this.canvas, {
       canStrike: () => this.phase === Phase.PLAYING && !this.session.demolished,
@@ -144,8 +145,7 @@ export class App {
       soundButton.setAttribute('aria-pressed', String(this.sound.on));
       if (this.sound.on) this.sound.unlock();
     });
-    this.fidelityButton = byId('fidelityButton');
-    this.fidelityButton.addEventListener('click', () => fidelity.cycle());
+    byId('fidelityButton').addEventListener('click', () => this.fidelityDialog.present());
     fidelity.listen(() => this.adoptFidelity());
     this.markFidelity();
     window.addEventListener('keydown', (event) => {
@@ -157,9 +157,9 @@ export class App {
   }
 
   markFidelity() {
-    const { level } = fidelity;
-    this.root.dataset.fidelity = level;
-    this.fidelityButton.setAttribute('aria-label', FIDELITY_LABELS[level]);
+    const { profile, preset } = fidelity;
+    this.root.dataset.blur = String(profile.blur);
+    this.fidelityDialog.show(profile, preset);
   }
 
   adoptFidelity() {
@@ -171,7 +171,7 @@ export class App {
     const bounds = this.wrap.getBoundingClientRect();
     this.viewWidth = Math.max(1, bounds.width);
     this.viewHeight = Math.max(1, bounds.height);
-    this.renderer.resize(this.viewWidth, this.viewHeight, pixelRatio());
+    this.renderer.resize(this.viewWidth, this.viewHeight, Math.min(pixelRatio(), fidelity.profile.pixelRatio));
     this.restage();
   }
 
@@ -308,22 +308,14 @@ export class App {
 
   frame(timestamp) {
     const now = timestamp / 1000;
-    const interval = now - this.lastFrame;
-    const dt = Math.min(MAX_FRAME_SECONDS, Math.max(0, interval));
+    const dt = Math.min(MAX_FRAME_SECONDS, Math.max(0, now - this.lastFrame));
     this.lastFrame = now;
-    this.watchPace(interval);
     try {
       this.tick(dt, now);
     } catch (error) {
       console.error(error);
     }
     requestAnimationFrame((time) => this.frame(time));
-  }
-
-  watchPace(interval) {
-    if (this.phase !== Phase.PLAYING || !fidelity.adapting) return;
-    this.lag.record(interval);
-    if (this.lag.takeLag()) fidelity.degrade();
   }
 
   tick(dt, now) {

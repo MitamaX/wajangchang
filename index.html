@@ -64,8 +64,8 @@
               <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><rect x="6" y="5" width="4" height="14" rx="1"/><rect x="14" y="5" width="4" height="14" rx="1"/></svg>
               <span>일시정지</span>
             </button>
-            <button class="icon-btn" id="fidelityButton" type="button">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4.25 17.5a8.5 8.5 0 1 1 15.5 0"/><path class="gauge-needle" d="M12 14V7.5"/><circle cx="12" cy="14" r="1.6" fill="currentColor" stroke="none"/></svg>
+            <button class="icon-btn" id="fidelityButton" type="button" aria-haspopup="dialog" aria-label="성능">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4.25 17.5a8.5 8.5 0 1 1 15.5 0"/><path d="M12 14l3.9-4.6"/><circle cx="12" cy="14" r="1.6" fill="currentColor" stroke="none"/></svg>
             </button>
             <button class="icon-btn" id="soundButton" type="button" aria-pressed="true" aria-label="소리">
               <svg class="sound-on" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 5 6.5 9H3v6h3.5L11 19z" fill="currentColor" fill-opacity=".2"/><path d="M15.5 8.5a5 5 0 0 1 0 7M18.5 5.5a9 9 0 0 1 0 13"/></svg>
@@ -149,6 +149,14 @@
           <button class="btn btn-ghost btn-large btn-block" id="restartButton" type="button">리셋</button>
           <button class="btn btn-ghost btn-large btn-block" id="resetButton" type="button">처음으로</button>
           <button class="btn btn-ghost btn-large btn-block" id="quitButton" type="button">결과 보기</button>
+        </div>
+      </div>
+
+      <div class="overlay" id="fidelity" hidden role="dialog" aria-modal="true" aria-label="성능">
+        <div class="menu">
+          <h2 class="menu-title">성능</h2>
+          <div class="knobs" id="fidelityKnobs"></div>
+          <button class="btn btn-accent btn-large btn-block" id="fidelityClose" type="button">닫기</button>
         </div>
       </div>
 

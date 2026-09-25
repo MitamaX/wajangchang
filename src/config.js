@@ -416,16 +416,30 @@ export const RECORDING = Object.freeze({
   backlog: 8,
 });
 
-const LITE = Object.freeze({ pixelRatio: 1, bodies: 100, flying: 3000, resting: 3000, density: 0.5, shadows: false, effects: true, longEdge: 854 });
+const LITE = Object.freeze({ pixelRatio: 1, bodies: 100, particles: 0.5, shadows: false, blur: false, effects: true, longEdge: 854 });
 
 export const FIDELITY = Object.freeze({
-  full: Object.freeze({ pixelRatio: 2, bodies: 220, flying: 6000, resting: 6000, density: 1, shadows: true, effects: true, longEdge: 1280 }),
-  lite: LITE,
-  bare: Object.freeze({ ...LITE, density: 0, effects: false }),
+  options: Object.freeze({
+    pixelRatio: [2, 1],
+    bodies: [220, 100],
+    particles: [1, 0.5, 0],
+    shadows: [true, false],
+    blur: [true, false],
+    effects: [true, false],
+    longEdge: [1280, 854],
+  }),
+  presets: Object.freeze({
+    full: Object.freeze({ pixelRatio: 2, bodies: 220, particles: 1, shadows: true, blur: true, effects: true, longEdge: 1280 }),
+    lite: LITE,
+    bare: Object.freeze({ ...LITE, particles: 0, effects: false }),
+  }),
 });
 
-export const LAG = Object.freeze({
-  window: 3,
-  minFps: 28,
-  outlier: 0.5,
+export const BENCHMARK = Object.freeze({
+  budgets: Object.freeze({ full: 8, lite: 16, bare: Infinity }),
+  renderFrames: 12,
+  physicsFrames: 30,
+  sprites: 180,
+  particles: 2400,
+  pile: Object.freeze({ columns: 15, rows: 10, size: 0.03 }),
 });

@@ -39,20 +39,11 @@
   --shadow-panel: 0 10px 30px rgba(0, 0, 0, 0.35);
   --blur-panel: blur(6px);
   --blur-veil: blur(2px);
-  --needle: 70deg;
 }
 
-.app:not([data-fidelity="full"]) {
+.app[data-blur="false"] {
   --blur-panel: none;
   --blur-veil: none;
-}
-
-.app[data-fidelity="lite"] {
-  --needle: 0deg;
-}
-
-.app[data-fidelity="bare"] {
-  --needle: -70deg;
 }
 
 *,
@@ -240,10 +231,8 @@ button {
   display: none;
 }
 
-.gauge-needle {
-  transform-origin: 12px 14px;
-  transform: rotate(var(--needle));
-  transition: transform 0.15s;
+.app:not([data-phase="setup"]) #fidelityButton {
+  display: none;
 }
 
 .label {
@@ -771,6 +760,31 @@ button {
   text-align: center;
 }
 
+.knobs {
+  display: grid;
+  grid-template-columns: auto repeat(3, minmax(0, 1fr));
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.knob {
+  display: contents;
+}
+
+.knob .label {
+  grid-column: 1;
+  padding-right: 6px;
+}
+
+.knob-rule {
+  grid-column: 1 / -1;
+  width: 100%;
+  margin: 4px 0;
+  border: 0;
+  border-top: 1px solid var(--divider);
+}
+
 @keyframes rise {
   from {
     opacity: 0;
@@ -1054,8 +1068,7 @@ button {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .meter-fill,
-  .gauge-needle {
+  .meter-fill {
     transition: none;
   }
 
