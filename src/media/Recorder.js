@@ -7,8 +7,9 @@ import { Soundtrack } from './Soundtrack.js';
 
 const PROBE = { width: 1280, height: 720 };
 const FRAME_SECONDS = 1 / RECORDING.fps;
-const LISTENING = new Set(['starting', 'recording']);
-const CANCELLABLE = new Set(['recording', 'closing', 'dubbing']);
+const PRELUDE_FRAMES = Math.round(RECORDING.preludeSeconds * RECORDING.fps);
+const LISTENING = new Set(['starting', 'standby', 'recording']);
+const CANCELLABLE = new Set(['standby', 'recording', 'closing', 'dubbing']);
 const MP4 = 'video/mp4';
 const OUTRO_SHARE = 0.3;
 
@@ -50,6 +51,10 @@ export class Recorder {
     this.source = null;
     this.dub = null;
     this.soundtrack = null;
+    this.compose = null;
+    this.prelude = [];
+    this.rehearsed = 0;
+    this.cued = false;
     this.frames = 0;
     this.clock = 0;
     this.backlog = 0;
@@ -83,12 +88,15 @@ export class Recorder {
     return this.support;
   }
 
-  async begin(aspect) {
+  async begin(aspect, compose) {
     this.cancel();
     const generation = this.generation;
     const { width, height } = frameSize(aspect);
     this.canvas = createCanvas(width, height);
     this.context = this.canvas.getContext('2d', { alpha: false });
+    this.compose = compose;
+    this.rehearsed = 0;
+    this.cued = false;
     this.frames = 0;
     this.clock = 0;
     this.backlog = 0;
@@ -125,7 +133,8 @@ export class Recorder {
     this.dub = dub;
     if (dub) this.soundtrack.attach(dub.audio);
     else this.soundtrack = null;
-    this.state = 'recording';
+    this.state = 'standby';
+    if (this.cued) this.roll();
   }
 
   cue(name, args) {
@@ -136,26 +145,61 @@ export class Recorder {
     this.clock += seconds;
   }
 
-  capture(compose) {
-    compose(this.context, this.canvas.width, this.canvas.height);
-    this.push();
+  rehearse(seconds) {
+    if (this.state !== 'standby') return;
+    this.clock += seconds;
+    let sample = null;
+    for (; this.rehearsed * FRAME_SECONDS <= this.clock; this.rehearsed++) {
+      sample = sample ? sample.clone() : this.shot();
+      this.prelude.push(sample);
+    }
+    const excess = this.prelude.length - PRELUDE_FRAMES;
+    if (excess > 0) this.prelude.splice(0, excess).forEach((stale) => stale.close());
   }
 
-  push() {
-    const { source, generation } = this;
-    const sample = new VideoSample(this.canvas, { timestamp: this.timeline, duration: FRAME_SECONDS });
-    this.frames++;
+  roll() {
+    if (this.state === 'starting') this.cued = true;
+    if (this.state !== 'standby') return;
+    const origin = (this.rehearsed - this.prelude.length) * FRAME_SECONDS;
+    this.clock -= origin;
+    if (this.soundtrack) this.soundtrack.shift(-origin);
+    this.state = 'recording';
+    this.prelude.forEach((sample) => this.enqueue(sample));
+    this.prelude = [];
+  }
+
+  capture() {
+    this.push(this.shot());
+  }
+
+  shot() {
+    this.compose(this.context, this.canvas.width, this.canvas.height);
+    return this.grab();
+  }
+
+  grab() {
+    return new VideoSample(this.canvas, { timestamp: this.timeline, duration: FRAME_SECONDS });
+  }
+
+  push(sample) {
+    const { generation } = this;
     this.backlog++;
+    return this.enqueue(sample).finally(() => {
+      if (generation === this.generation) this.backlog--;
+    });
+  }
+
+  enqueue(sample) {
+    const { source, generation } = this;
+    sample.setTimestamp(this.timeline);
+    this.frames++;
     if (this.soundtrack) this.soundtrack.advance(this.timeline);
     this.queue = this.queue
       .then(() => source.add(sample))
       .catch(() => {
         if (generation === this.generation) this.state = 'failed';
       })
-      .finally(() => {
-        sample.close();
-        if (generation === this.generation) this.backlog--;
-      });
+      .finally(() => sample.close());
     return this.queue;
   }
 
@@ -173,7 +217,7 @@ export class Recorder {
         if (generation !== this.generation) return null;
         this.context.drawImage(still, 0, 0);
         paintOutro(this.context, this.canvas.width, this.canvas.height, i / RECORDING.fps);
-        await this.push();
+        await this.push(this.grab());
         onProgress((OUTRO_SHARE * (i + 1)) / outroFrames);
       }
       await this.output.finalize();
@@ -207,6 +251,8 @@ export class Recorder {
       if (this.output) this.output.cancel().catch(() => {});
       if (this.dub) this.dub.cancel();
     }
+    this.prelude.forEach((sample) => sample.close());
+    this.prelude = [];
     this.output = null;
     this.source = null;
     this.dub = null;

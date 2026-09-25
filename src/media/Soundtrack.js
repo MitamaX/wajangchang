@@ -22,6 +22,12 @@ export class Soundtrack {
     this.cues.push({ name, args, time, seed: this.seed++ });
   }
 
+  shift(offset) {
+    this.cues.forEach((cue) => {
+      cue.time += offset;
+    });
+  }
+
   advance(timeline) {
     if (!this.source || this.working || timeline < this.rendered + CHUNK_SECONDS) return;
     this.working = true;

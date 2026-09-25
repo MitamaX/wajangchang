@@ -234,6 +234,7 @@ export class App {
     this.setup.hide();
     this.session.wield();
     this.enter(Phase.PLAYING);
+    this.startRecording();
     this.canvas.focus({ preventScroll: true });
   }
 
@@ -291,12 +292,12 @@ export class App {
     this.sound.unlock();
     if (this.session.started) return;
     this.session.start();
-    this.startRecording();
+    this.recorder.roll();
   }
 
   startRecording() {
     this.frameAspect = this.camera.aspect;
-    this.recorder.begin(this.frameAspect);
+    this.recorder.begin(this.frameAspect, (context, width, height) => this.composeField(context, width, height));
   }
 
   composeField(context, width, height) {
@@ -344,6 +345,7 @@ export class App {
     this.advance(dt + this.carry);
     this.carry = 0;
     this.draw();
+    this.recorder.rehearse(dt);
   }
 
   film(dt) {
@@ -361,7 +363,7 @@ export class App {
       this.advance(gap);
       this.carry -= gap;
       this.draw();
-      this.recorder.capture((context, width, height) => this.composeField(context, width, height));
+      this.recorder.capture();
       shot = true;
     }
     return shot;

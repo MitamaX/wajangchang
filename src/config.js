@@ -411,6 +411,7 @@ export const COMPLETION = Object.freeze({
 
 export const RECORDING = Object.freeze({
   fps: 30,
+  preludeSeconds: 1,
   outroSeconds: 3.6,
   busyGrace: 0.9,
   backlog: 8,
