@@ -374,9 +374,7 @@ export class App {
     }
     if (this.phase !== Phase.SETTLING) return;
     const waited = now - this.settleStart;
-    const settled = session.isQuiet() || waited > COMPLETION.settleTimeout;
-    const faded = session.idle || waited > COMPLETION.effectTimeout;
-    if (waited > COMPLETION.settleDelay && settled && faded) this.finish(false);
+    if ((session.isQuiet() && waited > COMPLETION.settleDelay) || waited > COMPLETION.settleTimeout) this.finish(false);
   }
 
   async finish(early) {

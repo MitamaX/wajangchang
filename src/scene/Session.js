@@ -106,10 +106,6 @@ export class Session {
     if (!this.started) this.startedAt = this.clock;
   }
 
-  get idle() {
-    return this.tools.every((tool) => !tool.busy);
-  }
-
   end() {
     if (this.endedAt === null) this.endedAt = this.clock;
     this.tools.forEach((tool) => tool.retire());
