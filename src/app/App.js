@@ -176,10 +176,12 @@ export class App {
   }
 
   restage() {
-    if (this.session && !this.session.started) this.session.refit(this.roomAspect);
+    const unstarted = this.session && !this.session.started;
+    if (unstarted) this.session.refit(this.roomAspect);
     const room = this.session ? this.session.room : Room.fitting(PLACEHOLDER_METERS, PLACEHOLDER_METERS, this.roomAspect);
     this.camera.frame(this.viewWidth, this.viewHeight, room);
     this.renderer.stage(this.camera, room, this.session ? this.session.debris.resting : []);
+    if (unstarted) this.frameRecording();
   }
 
   get roomAspect() {
@@ -296,8 +298,13 @@ export class App {
   }
 
   startRecording() {
+    this.recorder.begin((context, width, height) => this.composeField(context, width, height));
+    this.frameRecording();
+  }
+
+  frameRecording() {
     this.frameAspect = this.camera.aspect;
-    this.recorder.begin(this.frameAspect, (context, width, height) => this.composeField(context, width, height));
+    this.recorder.reframe(this.frameAspect);
   }
 
   composeField(context, width, height) {

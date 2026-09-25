@@ -8,6 +8,7 @@ import { Soundtrack } from './Soundtrack.js';
 const PROBE = { width: 1280, height: 720 };
 const FRAME_SECONDS = 1 / RECORDING.fps;
 const PRELUDE_FRAMES = Math.round(RECORDING.preludeSeconds * RECORDING.fps);
+const FRAMING = new Set(['starting', 'standby']);
 const LISTENING = new Set(['starting', 'standby', 'recording']);
 const CANCELLABLE = new Set(['standby', 'recording', 'closing', 'dubbing']);
 const MP4 = 'video/mp4';
@@ -88,12 +89,10 @@ export class Recorder {
     return this.support;
   }
 
-  async begin(aspect, compose) {
+  async begin(compose) {
     this.cancel();
     const generation = this.generation;
-    const { width, height } = frameSize(aspect);
-    this.canvas = createCanvas(width, height);
-    this.context = this.canvas.getContext('2d', { alpha: false });
+    this.canvas = null;
     this.compose = compose;
     this.rehearsed = 0;
     this.cued = false;
@@ -135,6 +134,20 @@ export class Recorder {
     else this.soundtrack = null;
     this.state = 'standby';
     if (this.cued) this.roll();
+  }
+
+  reframe(aspect) {
+    if (!FRAMING.has(this.state)) return;
+    const { width, height } = frameSize(aspect);
+    if (this.canvas && this.canvas.width === width && this.canvas.height === height) return;
+    this.canvas = createCanvas(width, height);
+    this.context = this.canvas.getContext('2d', { alpha: false });
+    this.discard();
+  }
+
+  discard() {
+    this.prelude.forEach((sample) => sample.close());
+    this.prelude = [];
   }
 
   cue(name, args) {
@@ -251,8 +264,7 @@ export class Recorder {
       if (this.output) this.output.cancel().catch(() => {});
       if (this.dub) this.dub.cancel();
     }
-    this.prelude.forEach((sample) => sample.close());
-    this.prelude = [];
+    this.discard();
     this.output = null;
     this.source = null;
     this.dub = null;
