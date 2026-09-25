@@ -226,6 +226,7 @@ export class Session {
     const landed = this.impactArea(blow);
     const grounded = blow.y + blow.radius >= -FLOOR_TOLERANCE;
     if (grounded) this.pound(blow);
+    if (blow.rubble) this.grind(blow);
     if (!landed && !grounded) this.sound.cue('miss');
     const { hitStop, ...shock } = { ...shockOf(blow.force, landed || grounded), ...blow.shock };
     this.lastStrike = this.clock;
@@ -233,6 +234,13 @@ export class Session {
     this.stall = hitStop;
     this.sound.cue(blow.cue, blow.force);
     this.blast(blow);
+  }
+
+  grind({ x, y, rubble, blast: { reach } }) {
+    const spacing = rubble / CELL_METERS;
+    this.fragmentsWithin({ x, y, radius: reach }).forEach((fragment) => {
+      if (fragment.body) this.apply(fragment, [this.fracture.pulverize(fragment.grid, spacing)], { x, y, burst: 0, strength: 0 });
+    });
   }
 
   hitArea(blow) {
