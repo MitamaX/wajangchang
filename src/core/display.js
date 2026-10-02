@@ -7,3 +7,8 @@ export const pixelRatio = () => Math.min(window.devicePixelRatio || 1, MAX_PIXEL
 export const prefersReducedMotion = () => REDUCED_MOTION.matches;
 
 export const compactLayout = () => COMPACT_LAYOUT.matches;
+
+export function whenCompact(action) {
+  if (compactLayout()) action();
+  else COMPACT_LAYOUT.addEventListener('change', () => action(), { once: true });
+}

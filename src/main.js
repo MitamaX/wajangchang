@@ -1,6 +1,7 @@
 import './styles/app.css';
 import { fidelity } from './core/fidelity.js';
 import { PhysicsWorld } from './physics/PhysicsWorld.js';
+import { AdBar } from './ui/AdBar.js';
 import { Loader } from './ui/Loader.js';
 
 const LOAD_SHARES = Object.freeze({ code: 1, engine: 8, benchmark: 1 });
@@ -12,6 +13,7 @@ async function calibrate(onProgress) {
 }
 
 async function launch() {
+  new AdBar();
   const loader = new Loader(LOAD_SHARES);
   const [{ App }] = await Promise.all([
     loader.track('code', import('./app/App.js')),

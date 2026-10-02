@@ -39,6 +39,7 @@
   --shadow-panel: 0 10px 30px rgba(0, 0, 0, 0.35);
   --blur-panel: blur(6px);
   --blur-veil: blur(2px);
+  --ad-space: 0px;
 }
 
 .app[data-blur="false"] {
@@ -91,7 +92,7 @@ button {
 }
 
 .app {
-  height: 100%;
+  height: calc(100% - var(--ad-space));
   max-width: 1600px;
   margin-inline: auto;
   padding: 10px var(--gutter) 12px;
@@ -622,7 +623,7 @@ button {
 
 .overlay {
   position: fixed;
-  inset: 0;
+  inset: 0 0 var(--ad-space);
   z-index: 20;
   display: grid;
   grid-template-columns: minmax(0, 1fr);
@@ -632,6 +633,17 @@ button {
   background: rgba(8, 9, 10, 0.72);
   backdrop-filter: var(--blur-veil);
   -webkit-backdrop-filter: var(--blur-veil);
+}
+
+.ad-bar {
+  position: fixed;
+  inset: auto 0 0;
+  z-index: 20;
+  height: var(--ad-space);
+  display: none;
+  justify-content: center;
+  padding-bottom: env(safe-area-inset-bottom);
+  background: var(--ground);
 }
 
 .result-inner {
@@ -805,6 +817,14 @@ button {
 }
 
 @media (max-width: 900px) {
+  :root:has(.ad-bar:not([hidden])) {
+    --ad-space: calc(var(--ad-height) + env(safe-area-inset-bottom));
+  }
+
+  .ad-bar {
+    display: flex;
+  }
+
   .app[data-phase="setup"] .hud {
     display: none;
   }
@@ -905,7 +925,7 @@ button {
 
   .result-inner {
     width: min(100%, 960px);
-    height: calc(100dvh - 2 * var(--gutter));
+    height: calc(100dvh - var(--ad-space) - 2 * var(--gutter));
     display: flex;
     flex-direction: column;
     align-items: stretch;

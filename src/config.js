@@ -417,6 +417,13 @@ export const RECORDING = Object.freeze({
   backlog: 8,
 });
 
+export const AD = Object.freeze({
+  unit: '',
+  width: 320,
+  height: 50,
+  script: 'https://t1.daumcdn.net/kas/static/ba.min.js',
+});
+
 const LITE = Object.freeze({ pixelRatio: 1, bodies: 100, particles: 0.5, shadows: false, blur: false, effects: true, longEdge: 854 });
 
 export const FIDELITY = Object.freeze({
