@@ -1,9 +1,11 @@
+import { TEXT } from '../i18n/text.js';
+
 const NO_RINGS = Object.freeze({ ringStress: Infinity, ringChance: 0, ringSpacing: 0, ringCount: 0 });
 
 export const MATERIALS = Object.freeze({
   glass: {
     key: 'glass',
-    label: '유리',
+    label: TEXT.materials.glass,
     surface: { density: 12.5, friction: 0.3, restitution: 0.12 },
     collision: { speed: 2.4, scale: 0.35 },
     fracture: {
@@ -44,7 +46,7 @@ export const MATERIALS = Object.freeze({
   },
   wood: {
     key: 'wood',
-    label: '나무',
+    label: TEXT.materials.wood,
     surface: { density: 12, friction: 0.6, restitution: 0.2 },
     collision: { speed: 5.5, scale: 0.25 },
     fracture: {
@@ -82,7 +84,7 @@ export const MATERIALS = Object.freeze({
   },
   stone: {
     key: 'stone',
-    label: '돌',
+    label: TEXT.materials.stone,
     surface: { density: 72, friction: 0.75, restitution: 0.05 },
     collision: { speed: 3.8, scale: 0.3 },
     fracture: {
@@ -120,7 +122,7 @@ export const MATERIALS = Object.freeze({
   },
   metal: {
     key: 'metal',
-    label: '금속',
+    label: TEXT.materials.metal,
     surface: { density: 15.6, friction: 0.35, restitution: 0.3 },
     collision: { speed: 7, scale: 0.2 },
     fracture: {

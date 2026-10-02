@@ -1,17 +1,19 @@
 import { FIDELITY } from '../config.js';
+import { TEXT } from '../i18n/text.js';
 import { byId, chipButton, markSelected } from './dom.js';
 
 const CLOSE_KEY = 'Escape';
-const SWITCH = Object.freeze({ true: '켬', false: '끔' });
-const PRESETS = Object.freeze({ key: 'preset', label: '사양', names: Object.freeze({ full: '기본', lite: '저사양', bare: '최저' }) });
+const WORDS = TEXT.fidelity;
+const SWITCH = Object.freeze({ true: WORDS.on, false: WORDS.off });
+const PRESETS = Object.freeze({ key: 'preset', label: WORDS.preset, names: Object.freeze({ full: WORDS.full, lite: WORDS.lite, bare: WORDS.bare }) });
 const KNOBS = Object.freeze([
-  { key: 'pixelRatio', label: '해상도', names: { 2: '높음', 1: '보통' } },
-  { key: 'bodies', label: '파편', names: { 220: '많음', 100: '적음' } },
-  { key: 'particles', label: '입자', names: { 1: '많음', 0.5: '적음', 0: '없음' } },
-  { key: 'shadows', label: '그림자', names: SWITCH },
-  { key: 'blur', label: '블러', names: SWITCH },
-  { key: 'effects', label: '이펙트', names: SWITCH },
-  { key: 'longEdge', label: '녹화', names: { 1280: '720p', 854: '480p' } },
+  { key: 'pixelRatio', label: WORDS.pixelRatio, names: { 2: WORDS.high, 1: WORDS.normal } },
+  { key: 'bodies', label: WORDS.bodies, names: { 220: WORDS.many, 100: WORDS.few } },
+  { key: 'particles', label: WORDS.particles, names: { 1: WORDS.many, 0.5: WORDS.few, 0: WORDS.none } },
+  { key: 'shadows', label: WORDS.shadows, names: SWITCH },
+  { key: 'blur', label: WORDS.blur, names: SWITCH },
+  { key: 'effects', label: WORDS.effects, names: SWITCH },
+  { key: 'longEdge', label: WORDS.longEdge, names: { 1280: '720p', 854: '480p' } },
 ]);
 
 function knob({ key, label, names }, values, onPick) {

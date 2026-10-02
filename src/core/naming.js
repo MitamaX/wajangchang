@@ -1,4 +1,6 @@
-const FALLBACK_NAME = '이 이미지';
+import { TEXT } from '../i18n/text.js';
+
+const FALLBACK_NAME = TEXT.intake.fallbackName;
 const NAME_LIMIT = 20;
 const FILE_NAME_LIMIT = 40;
 const GENERIC_NAMES = /^(img|dsc|pxl|mvimg|screenshot|screen shot|스크린샷|kakaotalk|photo|image|unnamed|download)/i;

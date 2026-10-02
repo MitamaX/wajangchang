@@ -1,9 +1,9 @@
 import { sourceSize } from '../core/images.js';
 import { nameFromFile } from '../core/naming.js';
+import { TEXT } from '../i18n/text.js';
 import { byId } from './dom.js';
 
 const HEIC = /hei[cf]/i;
-const PASTED_NAME = '붙여넣은 이미지.png';
 const REVOKE_DELAY = 1000;
 
 async function decode(file) {
@@ -59,7 +59,7 @@ export class ImageIntake {
   async load(file) {
     if (!file) return;
     if (file.type && !file.type.startsWith('image/')) {
-      this.onError('이미지 파일만 가능');
+      this.onError(TEXT.intake.notImage);
       return;
     }
     try {
@@ -67,7 +67,7 @@ export class ImageIntake {
       if (!sourceSize(source).width) throw new Error('empty');
       this.onImage(source, nameFromFile(file.name));
     } catch {
-      this.onError(HEIC.test(file.name || file.type) ? 'HEIC 미지원 · JPG·PNG 가능' : '이미지를 열 수 없음');
+      this.onError(HEIC.test(file.name || file.type) ? TEXT.intake.heic : TEXT.intake.unreadable);
     }
   }
 
@@ -82,7 +82,7 @@ export class ImageIntake {
     const file = item && item.getAsFile();
     if (!file) return;
     event.preventDefault();
-    this.load(new File([file], PASTED_NAME, { type: file.type }));
+    this.load(new File([file], TEXT.intake.pastedName, { type: file.type }));
   }
 
   enter(event) {

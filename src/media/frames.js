@@ -2,6 +2,7 @@ import { HAZARD, paintHazard } from '../core/canvas.js';
 import { FONT } from '../core/fonts.js';
 import { wholePercent } from '../core/format.js';
 import { clamp } from '../core/math.js';
+import { TEXT } from '../i18n/text.js';
 
 const REFERENCE_EDGE = 720;
 
@@ -25,7 +26,7 @@ export function composeFrame(context, width, height, stage, field, progress) {
   context.font = `400 ${34 * unit}px ${FONT.display}`;
   context.textAlign = 'right';
   context.textBaseline = 'alphabetic';
-  context.fillText('와장창', width - margin, height - margin);
+  context.fillText(TEXT.brand, width - margin, height - margin);
   context.shadowColor = 'transparent';
   paintMeter(context, margin, barY, barWidth, barHeight, progress, unit);
   context.shadowColor = 'rgba(0,0,0,0.6)';
@@ -36,6 +37,6 @@ export function composeFrame(context, width, height, stage, field, progress) {
   context.fillText(`${wholePercent(progress)}%`, margin + barWidth + 12 * unit, barY + barHeight);
   context.fillStyle = 'rgba(255,255,255,0.85)';
   context.font = `600 ${15 * unit}px ${FONT.ui}`;
-  context.fillText('파괴율', margin, barY - 10 * unit);
+  context.fillText(TEXT.ui.destruction, margin, barY - 10 * unit);
   context.restore();
 }

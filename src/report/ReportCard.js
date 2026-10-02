@@ -1,6 +1,7 @@
 import { createCanvas, traceRoundRect } from '../core/canvas.js';
 import { FONT } from '../core/fonts.js';
 import { TAU, clamp, easeOut, randomBetween } from '../core/math.js';
+import { TEXT } from '../i18n/text.js';
 
 const CARD = Object.freeze({ width: 540, height: 760, frameWidth: 640, frameHeight: 820, padding: 34, rowHeight: 50, labelWidth: 118 });
 const INK = '#1f1e1b';
@@ -18,9 +19,27 @@ const THUMP_SECONDS = 0.2;
 const SIGNATURE_LIFT = 14;
 const SEAL_INSET = Object.freeze({ right: 40, bottom: 22 + SIGNATURE_LIFT });
 const SEAL_LANDED = 130;
+const SEAL_TEXT = Object.freeze({ width: 150, gap: 24, center: 4 });
+const SEAL_BRAND_FACE = Object.freeze({ weight: 400, size: 50, family: FONT.display });
+const SEAL_CAPTION_FACE = Object.freeze({ weight: 800, size: 38, family: FONT.doc });
 
 export const REPORT_ASPECT = CARD.frameWidth / CARD.frameHeight;
 export const STAMP_DELAY = (STAMP_AT + STAMP_SECONDS) * 1000;
+
+const faceFont = ({ weight, family }, size) => `${weight} ${size}px ${family}`;
+
+function sealLine(context, text, face) {
+  context.font = faceFont(face, face.size);
+  return { text, face, size: face.size * Math.min(1, SEAL_TEXT.width / context.measureText(text).width) };
+}
+
+function stackSealLines(context, lines) {
+  const spread = (lines[0].size + lines[1].size) / 2 + SEAL_TEXT.gap;
+  lines.forEach(({ text, face, size }, i) => {
+    context.font = faceFont(face, size);
+    context.fillText(text, 0, SEAL_TEXT.center + (i - 0.5) * spread);
+  });
+}
 
 export function makeSeal(early) {
   const canvas = createCanvas(SEAL_SIZE, SEAL_SIZE);
@@ -36,11 +55,8 @@ export function makeSeal(early) {
   context.stroke();
   context.textAlign = 'center';
   context.textBaseline = 'middle';
-  context.font = `400 50px ${FONT.display}`;
-  context.fillText('와장창', 0, -30, 150);
-  const caption = early ? '부분파기' : '파기완료';
-  context.font = `800 38px ${FONT.doc}`;
-  context.fillText(caption, 0, 38, 150);
+  const caption = early ? TEXT.report.seal.partial : TEXT.report.seal.done;
+  stackSealLines(context, [sealLine(context, TEXT.brand, SEAL_BRAND_FACE), sealLine(context, caption, SEAL_CAPTION_FACE)]);
   context.globalCompositeOperation = 'destination-out';
   for (let i = 0; i < 1100; i++) {
     context.globalAlpha = Math.random() * 0.75;
@@ -67,7 +83,7 @@ function drawTable(context, report, unit, top, cardWidth) {
     context.fillStyle = LABEL_INK;
     context.textAlign = 'left';
     context.font = `700 ${17 * unit}px ${FONT.doc}`;
-    context.fillText(label, left + 4 * unit, y + row / 2 + 6 * unit);
+    context.fillText(label, left + 4 * unit, y + row / 2 + 6 * unit, (labelWidth - 8) * unit);
     let valueX = left + labelWidth * unit + 16 * unit;
     if (i === 0 && report.thumb) {
       const size = row - 14 * unit;
@@ -108,19 +124,19 @@ export function drawReportCard(context, width, height, report, time, seal) {
   context.fillStyle = MUTE;
   context.font = `500 ${13 * unit}px ${FONT.ui}`;
   context.textAlign = 'left';
-  context.fillText('와장창 파기관리대장', padding, padding + 6 * unit);
+  context.fillText(TEXT.report.ledger, padding, padding + 6 * unit);
   context.font = `500 ${13 * unit}px ${FONT.mono}`;
   context.textAlign = 'right';
   context.fillText(report.serial, cardWidth - padding, padding + 6 * unit);
   context.fillStyle = INK;
   context.textAlign = 'center';
   context.font = `800 ${(report.early ? 32 : 40) * unit}px ${FONT.doc}`;
-  context.fillText(report.title, cardWidth / 2, padding + 76 * unit);
+  context.fillText(report.title, cardWidth / 2, padding + 76 * unit, cardWidth - padding * 2);
   const bottom = drawTable(context, report, unit, padding + 104 * unit, cardWidth);
   context.textAlign = 'center';
   context.fillStyle = MUTE;
   context.font = `500 ${13 * unit}px ${FONT.ui}`;
-  context.fillText('판   정', cardWidth / 2, bottom + 46 * unit);
+  context.fillText(TEXT.report.verdictHeading, cardWidth / 2, bottom + 46 * unit);
   context.fillStyle = INK;
   context.font = `400 ${30 * unit}px ${FONT.display}`;
   context.fillText(report.verdict, cardWidth / 2, bottom + 86 * unit, cardWidth - padding * 2);
@@ -128,7 +144,7 @@ export function drawReportCard(context, width, height, report, time, seal) {
   context.font = `700 ${16 * unit}px ${FONT.doc}`;
   const signature = cardHeight - padding - SIGNATURE_LIFT * unit;
   context.fillText(report.dateLong, cardWidth - padding, signature - 34 * unit);
-  context.fillText('와장창 파기관리소장', cardWidth - padding - 20 * unit, signature);
+  context.fillText(TEXT.report.signature, cardWidth - padding - 20 * unit, signature);
   if (stamp > 0 && seal) {
     const size = SEAL_LANDED * unit * (1 + (1 - stamp) * 1.3);
     context.globalAlpha = 0.92 * clamp(stamp * 1.6, 0, 1);

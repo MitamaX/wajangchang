@@ -1,10 +1,11 @@
 import { createCanvas, scatterNoise, traceRoundRect } from '../core/canvas.js';
 import { FONT } from '../core/fonts.js';
+import { dayHeading, weekdayInitial } from '../core/format.js';
 import { TAU } from '../core/math.js';
+import { TEXT } from '../i18n/text.js';
 
 const DAYS_IN_WEEK = 7;
 const MONDAY = 1;
-const WEEKDAYS = ['월', '화', '수', '목', '금', '토', '일'];
 const PROBE_SIZE = 100;
 const QR = Object.freeze({ modules: 21, finder: 7, quiet: 1 });
 
@@ -14,6 +15,14 @@ function nextMonday() {
   const ahead = today === MONDAY ? DAYS_IN_WEEK : ((MONDAY + DAYS_IN_WEEK - today) % DAYS_IN_WEEK || DAYS_IN_WEEK);
   date.setDate(date.getDate() + ahead);
   return date;
+}
+
+function weekInitials(monday) {
+  return Array.from({ length: DAYS_IN_WEEK }, (_, offset) => {
+    const day = new Date(monday);
+    day.setDate(monday.getDate() + offset);
+    return weekdayInitial(day);
+  });
 }
 
 function fillFitted(g, text, { weight, family, x, y, width, tracking = 0 }) {
@@ -39,6 +48,8 @@ function inkOffset(box) {
 }
 
 function drawMonday() {
+  const copy = TEXT.samples.monday;
+  const weekdays = weekInitials(nextMonday());
   const width = 960;
   const height = 1200;
   const margin = 64;
@@ -59,13 +70,13 @@ function drawMonday() {
   }
   g.fillStyle = 'rgba(0,0,0,.12)';
   for (let x = 12; x < width; x += 16) g.fillRect(x, 100, 7, 2);
-  const cell = (width - margin * 2) / WEEKDAYS.length;
+  const cell = (width - margin * 2) / weekdays.length;
   const weekdayY = 196;
   g.textAlign = 'center';
   g.textBaseline = 'alphabetic';
   g.font = `600 34px ${FONT.ui}`;
-  const weekdayBaseline = weekdayY + inkOffset(g.measureText(WEEKDAYS[0])).y;
-  WEEKDAYS.forEach((day, i) => {
+  const weekdayBaseline = weekdayY + inkOffset(g.measureText(weekdays[0])).y;
+  weekdays.forEach((day, i) => {
     const x = margin + cell * (i + 0.5);
     const isMonday = i === 0;
     if (isMonday) {
@@ -79,13 +90,12 @@ function drawMonday() {
   });
   const lockup = { x: width / 2, width: width - margin * 2 };
   g.fillStyle = '#1c1b19';
-  fillFitted(g, '월요일', { ...lockup, weight: 400, family: FONT.display, y: 620 });
+  fillFitted(g, copy.name, { ...lockup, weight: 400, family: FONT.display, y: 620 });
   g.fillStyle = '#7b786f';
-  fillFitted(g, 'MONDAY', { ...lockup, weight: 600, family: FONT.ui, y: 800, tracking: 0.45 });
+  fillFitted(g, copy.caption, { ...lockup, weight: 600, family: FONT.ui, y: 800, tracking: 0.45 });
   g.strokeStyle = '#cfcabd';
   g.lineWidth = 2;
-  const memo = [['08:30', '출근'], ['09:00', '주간회의 (보고서 지참)'], ['14:00', '거래처 미팅'], ['18:30', '야근 예정']];
-  memo.forEach(([time, task], i) => {
+  copy.memo.forEach(([time, task], i) => {
     const y = 972 + i * 54;
     g.beginPath();
     g.moveTo(margin, y + 16);
@@ -103,6 +113,7 @@ function drawMonday() {
 }
 
 function drawAlarm() {
+  const copy = TEXT.samples.alarm;
   const width = 900;
   const height = 1400;
   const canvas = createCanvas(width, height);
@@ -132,17 +143,17 @@ function drawAlarm() {
   g.textAlign = 'center';
   g.fillStyle = '#ffb44a';
   g.font = `600 40px ${FONT.ui}`;
-  g.fillText('알람', width / 2, 300);
+  g.fillText(copy.name, width / 2, 300);
   g.fillStyle = '#f4f7f8';
   g.font = `600 250px ${FONT.mono}`;
   g.fillText('06:30', width / 2, 560);
   const date = nextMonday();
   g.fillStyle = '#a9b8bd';
   g.font = `500 40px ${FONT.ui}`;
-  g.fillText(`${date.getMonth() + 1}월 ${date.getDate()}일 월요일`, width / 2, 640);
+  g.fillText(dayHeading(date), width / 2, 640);
   g.fillStyle = '#6f8389';
   g.font = `400 30px ${FONT.ui}`;
-  g.fillText('5분 뒤 다시 울림 · 3번째 알림', width / 2, 700);
+  g.fillText(copy.snooze, width / 2, 700);
   for (let i = 0; i < 3; i++) {
     g.strokeStyle = `rgba(255,180,74,${0.35 - i * 0.1})`;
     g.lineWidth = 4;
@@ -155,12 +166,12 @@ function drawAlarm() {
   g.fill();
   g.fillStyle = '#e9eef0';
   g.font = `600 44px ${FONT.ui}`;
-  g.fillText('다시 알림', width / 2, 1116);
+  g.fillText(copy.again, width / 2, 1116);
   traceRoundRect(g, 90, 1190, width - 180, 120, 60);
   g.fillStyle = '#f07b3f';
   g.fill();
   g.fillStyle = '#1b0f08';
-  g.fillText('중지', width / 2, 1266);
+  g.fillText(copy.stop, width / 2, 1266);
   return canvas;
 }
 
@@ -201,6 +212,7 @@ function fillLines(g, lines, x, y, leading) {
 }
 
 function drawFreeze() {
+  const copy = TEXT.samples.freeze;
   const width = 1280;
   const height = 800;
   const margin = 120;
@@ -220,20 +232,20 @@ function drawFreeze() {
   const textX = faceX + face.actualBoundingBoxRight + gutter;
   const top = 210;
   g.font = `300 40px ${FONT.system}`;
-  fillLines(g, ['PC에 문제가 발생하여 다시 시작해야 합니다.', '오류 정보를 수집하고 있으며,', '자동으로 다시 시작됩니다.'], textX, top, 58);
-  g.fillText('20% 완료', textX, top + 200);
+  fillLines(g, copy.message, textX, top, 58);
+  g.fillText(copy.progress, textX, top + 200);
   const qrTop = 580;
   const qrSpan = paintQr(g, margin, qrTop, 5, blue);
   g.fillStyle = '#ffffff';
   g.font = `300 24px ${FONT.system}`;
-  fillLines(g, ['지원 담당자에게 문의하는 경우 다음 정보를 알려 주세요.', '중지 코드: CRITICAL_PROCESS_DIED'], margin + qrSpan + 28, qrTop + 44, 42);
+  fillLines(g, copy.support, margin + qrSpan + 28, qrTop + 44, 42);
   return canvas;
 }
 
 export const SAMPLES = Object.freeze({
-  monday: { name: '월요일', draw: drawMonday },
-  alarm: { name: '알람', draw: drawAlarm },
-  freeze: { name: '응답 없음', draw: drawFreeze },
+  monday: { name: TEXT.samples.monday.name, draw: drawMonday },
+  alarm: { name: TEXT.samples.alarm.name, draw: drawAlarm },
+  freeze: { name: TEXT.samples.freeze.name, draw: drawFreeze },
 });
 
 export const SAMPLE_ORDER = ['monday', 'alarm', 'freeze'];

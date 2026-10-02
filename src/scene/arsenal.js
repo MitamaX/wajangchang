@@ -1,4 +1,5 @@
 import { BALL, BLACKHOLE, CHARGE, LAVA, NUKE, PRESS } from '../config.js';
+import { TEXT } from '../i18n/text.js';
 import { BlackHole } from './BlackHole.js';
 import { Bomber } from './Bomber.js';
 import { Cutter } from './Cutter.js';
@@ -17,7 +18,7 @@ import { WreckingBall } from './WreckingBall.js';
 export const ARSENAL = Object.freeze([
   {
     key: 'hammer',
-    label: '망치',
+    label: TEXT.tools.hammer,
     arm: (session) => new Hammer(session.room, {
       onStrike: (blow) => session.strike(blow),
       onTier: (tier) => session.sound.cue('chime', tier, tier === CHARGE.tiers.length),
@@ -25,21 +26,21 @@ export const ARSENAL = Object.freeze([
   },
   {
     key: 'fist',
-    label: '주먹',
+    label: TEXT.tools.fist,
     arm: (session) => new Fist(session.room, {
       onPunch: (blow) => session.strike(blow),
     }),
   },
   {
     key: 'cutter',
-    label: '쿠키틀',
+    label: TEXT.tools.cutter,
     arm: (session) => new Cutter(session.room, {
       onStamp: (outline) => session.stamp(outline),
     }),
   },
   {
     key: 'saw',
-    label: '톱날',
+    label: TEXT.tools.saw,
     arm: (session) => new Saw(session.room, {
       onGrind: (cut) => session.grind(cut),
       onWhir: () => session.sound.cue('whir'),
@@ -47,7 +48,7 @@ export const ARSENAL = Object.freeze([
   },
   {
     key: 'pendulum',
-    label: '진자',
+    label: TEXT.tools.pendulum,
     arm: (session) => new Pendulum(session.room, session.physics, session, {
       onHit: (blow) => session.strike(blow),
       onGrab: () => session.sound.cue('latch'),
@@ -56,7 +57,7 @@ export const ARSENAL = Object.freeze([
   },
   {
     key: 'ball',
-    label: '철구',
+    label: TEXT.tools.ball,
     arm: (session) => new WreckingBall(session.room, session.physics, {
       onSear: (heat) => session.sear(heat),
       onContact: () => session.sound.cue('sear'),
@@ -66,7 +67,7 @@ export const ARSENAL = Object.freeze([
   },
   {
     key: 'press',
-    label: '프레스',
+    label: TEXT.tools.press,
     arm: (session) => new Press(session.room, {
       onCrush: (stroke) => session.crush(stroke),
       onLand: (x) => session.land(x, PRESS.landShock),
@@ -75,7 +76,7 @@ export const ARSENAL = Object.freeze([
   },
   {
     key: 'gun',
-    label: '기관총',
+    label: TEXT.tools.gun,
     arm: (session) => new Gun(session.room, {
       onFire: (round) => session.pepper(round),
       onMotor: (cadence) => session.sound.cue('motor', cadence),
@@ -84,7 +85,7 @@ export const ARSENAL = Object.freeze([
   },
   {
     key: 'bomb',
-    label: '폭탄',
+    label: TEXT.tools.bomb,
     arm: (session) => new Bomber(session.room, session, {
       onStrike: (blow) => session.strike(blow),
       onPlant: () => session.sound.cue('plant'),
@@ -93,7 +94,7 @@ export const ARSENAL = Object.freeze([
   },
   {
     key: 'katana',
-    label: '참격',
+    label: TEXT.tools.katana,
     arm: (session) => new Katana(session.room, {
       onSlash: (line) => session.slash(line),
       onSever: (marks) => session.sever(marks),
@@ -101,7 +102,7 @@ export const ARSENAL = Object.freeze([
   },
   {
     key: 'lightning',
-    label: '번개',
+    label: TEXT.tools.lightning,
     arm: (session) => new Lightning(session.room, {
       onStrike: (path, blow) => session.electrocute(path, blow),
       onCharge: () => session.sound.cue('static'),
@@ -109,7 +110,7 @@ export const ARSENAL = Object.freeze([
   },
   {
     key: 'lava',
-    label: '용암',
+    label: TEXT.tools.lava,
     arm: (session) => new Lava(session.room, {
       onEngage: () => session.engage(),
       onSweep: (thrust) => session.sweep(thrust, LAVA.heft),
@@ -121,7 +122,7 @@ export const ARSENAL = Object.freeze([
   },
   {
     key: 'blackhole',
-    label: '블랙홀',
+    label: TEXT.tools.blackhole,
     arm: (session) => new BlackHole(session.room, {
       onFeed: (maw) => session.devour(maw),
       onSweep: (thrust) => session.sweep(thrust, BLACKHOLE.heft),
@@ -131,7 +132,7 @@ export const ARSENAL = Object.freeze([
   },
   {
     key: 'nuke',
-    label: '핵',
+    label: TEXT.tools.nuke,
     arm: (session) => new Nuke(session.room, session, {
       onImpact: (blow) => session.incinerate(blow, NUKE.embers),
       onArm: () => session.sound.cue('alarm'),

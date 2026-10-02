@@ -19,6 +19,7 @@ import { ARSENAL } from '../scene/arsenal.js';
 import { Camera, Room } from '../scene/Camera.js';
 import { Session } from '../scene/Session.js';
 import { byId } from '../ui/dom.js';
+import { TEXT } from '../i18n/text.js';
 import { ImageIntake } from '../ui/ImageIntake.js';
 import { PauseMenu } from '../ui/PauseMenu.js';
 import { ResultDialog } from '../ui/ResultDialog.js';
@@ -35,7 +36,7 @@ const PLACEHOLDER_METERS = 0.6;
 const DEFAULT_SAMPLE = 'monday';
 const DEFAULT_MATERIAL = 'glass';
 const REPORT_FONT_TIMEOUT = 1500;
-const FILE_PREFIX = '와장창_';
+const FILE_PREFIX = `${TEXT.brand}_`;
 const PAUSE_KEY = 'Escape';
 const OUTRO_CUES = [{ name: 'stamp', offset: STAMP_DELAY / 1000 }];
 
@@ -43,12 +44,7 @@ const Phase = Object.freeze({ SETUP: 'setup', PLAYING: 'playing', PAUSED: 'pause
 const PAUSABLE = new Set([Phase.PLAYING, Phase.PAUSED]);
 const FROZEN = new Set([Phase.PAUSED, Phase.DONE]);
 
-const SHARE_NOTES = Object.freeze({
-  shared: '',
-  cancelled: '',
-  'handoff-copied': '저장 · 문구 복사 · X 열림',
-  handoff: '저장 · X 열림',
-});
+const SHARE_NOTES = Object.freeze({ shared: '', cancelled: '', ...TEXT.share });
 
 function pngFile(canvas, name) {
   return new Promise((resolve) => {

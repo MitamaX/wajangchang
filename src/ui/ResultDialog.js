@@ -1,5 +1,6 @@
 import { compactLayout, pixelRatio, prefersReducedMotion } from '../core/display.js';
 import { REPORT_ASPECT, STAMP_DELAY, drawReportCard } from '../report/ReportCard.js';
+import { TEXT } from '../i18n/text.js';
 import { byId } from './dom.js';
 import { Meter } from './Meter.js';
 
@@ -64,7 +65,7 @@ export class ResultDialog {
     this.video.hidden = true;
     this.render.hidden = false;
     this.renderMeter.show(0);
-    this.saveLabel.textContent = '영상 저장';
+    this.saveLabel.textContent = TEXT.ui.saveVideo;
     this.shareButton.disabled = true;
     this.saveButton.disabled = true;
     this.showNote('');
@@ -108,7 +109,7 @@ export class ResultDialog {
 
   showMedia(file) {
     this.render.hidden = true;
-    this.saveLabel.textContent = file.type.startsWith('video/') ? '영상 저장' : '이미지 저장';
+    this.saveLabel.textContent = file.type.startsWith('video/') ? TEXT.ui.saveVideo : TEXT.ui.saveImage;
     this.shareButton.disabled = false;
     this.saveButton.disabled = false;
   }
