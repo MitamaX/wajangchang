@@ -12,7 +12,7 @@ import { composeFrame } from '../media/frames.js';
 import { Recorder, frameSize } from '../media/Recorder.js';
 import { ShareKit } from '../media/ShareKit.js';
 import { Renderer } from '../render/Renderer.js';
-import { buildReport, shareText } from '../report/Report.js';
+import { buildReport } from '../report/Report.js';
 import { STAMP_DELAY, makeSeal, paintOutro } from '../report/ReportCard.js';
 import { SAMPLES } from '../samples/samples.js';
 import { ARSENAL } from '../scene/arsenal.js';
@@ -44,8 +44,6 @@ const Phase = Object.freeze({ SETUP: 'setup', PLAYING: 'playing', PAUSED: 'pause
 const PAUSABLE = new Set([Phase.PLAYING, Phase.PAUSED]);
 const FROZEN = new Set([Phase.PAUSED, Phase.DONE]);
 
-const SHARE_NOTES = Object.freeze({ shared: '', cancelled: '', ...TEXT.share });
-
 function pngFile(canvas, name) {
   return new Promise((resolve) => {
     canvas.toBlob((blob) => resolve(new File([blob], name, { type: 'image/png' })), 'image/png');
@@ -69,7 +67,6 @@ export class App {
     this.materialKey = DEFAULT_MATERIAL;
     this.enter(Phase.SETUP);
     this.settleStart = 0;
-    this.report = null;
     this.shareFile = null;
     this.viewWidth = 1;
     this.viewHeight = 1;
@@ -410,7 +407,6 @@ export class App {
     this.input.cancel();
     session.end();
     const report = buildReport({ session, name: this.status.name, early });
-    this.report = report;
     await loadFonts(report.fields.name + report.verdict + report.fields.date, REPORT_FONT_TIMEOUT);
     if (this.session !== session) return;
     const seal = makeSeal(early);
@@ -439,15 +435,13 @@ export class App {
     return canvas;
   }
 
-  async share() {
+  share() {
     if (!this.shareFile) return;
-    const outcome = await this.shareKit.post(this.shareFile, shareText(this.report));
-    this.result.showNote(SHARE_NOTES[outcome]);
+    this.shareKit.post(this.shareFile);
   }
 
   saveMedia() {
     if (!this.shareFile) return;
     this.shareKit.save(this.shareFile);
-    this.result.showNote('');
   }
 }

@@ -17,7 +17,6 @@ export class ResultDialog {
     this.poster = byId('previewPoster');
     this.render = byId('render');
     this.renderMeter = new Meter(byId('renderMeter'), byId('renderFill'), byId('renderPercent'));
-    this.note = byId('shareNote');
     this.shareButton = byId('shareButton');
     this.saveButton = byId('saveButton');
     this.saveLabel = byId('saveLabel');
@@ -68,7 +67,6 @@ export class ResultDialog {
     this.saveLabel.textContent = TEXT.ui.saveVideo;
     this.shareButton.disabled = true;
     this.saveButton.disabled = true;
-    this.showNote('');
   }
 
   animateCard(report, seal) {
@@ -112,11 +110,6 @@ export class ResultDialog {
     this.saveLabel.textContent = file.type.startsWith('video/') ? TEXT.ui.saveVideo : TEXT.ui.saveImage;
     this.shareButton.disabled = false;
     this.saveButton.disabled = false;
-  }
-
-  showNote(text) {
-    this.note.textContent = text;
-    this.note.hidden = !text;
   }
 
   releaseVideo() {

@@ -14,7 +14,6 @@
   --hazard-ink: #17150e;
   --share: #f5f5f2;
   --share-ink: #0f0f10;
-  --ok: #9bd48f;
   --focus: #8ccbff;
   --stage: #45484b;
   --f-display: "Gasoek One", "Black Han Sans", "Apple SD Gothic Neo", "Malgun Gothic", system-ui, sans-serif;
@@ -739,12 +738,6 @@ button {
   display: flex;
   flex-direction: column;
   gap: 10px;
-}
-
-.share-note {
-  margin: 0;
-  font-size: 14px;
-  color: var(--ok);
 }
 
 .share-next {

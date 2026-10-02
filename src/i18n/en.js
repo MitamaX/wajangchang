@@ -127,11 +127,6 @@ export default {
     },
     pieces: (count) => count,
     serial: (code) => `No. ${code}`,
-    share: ({ name, material, percent, time, pieces }, verdict) => `"${name}" ${material} ${percent} destroyed · ${time} · ${pieces} fragments · ${verdict} #${BRAND.toLowerCase()}`,
-  },
-  share: {
-    'handoff-copied': 'Saved · Text copied · X opened',
-    handoff: 'Saved · X opened',
   },
   intake: {
     notImage: 'Images only',

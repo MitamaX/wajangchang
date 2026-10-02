@@ -45,7 +45,3 @@ export function buildReport({ session, name, early }) {
     verdict: verdictFor(session.material.key, percent, early),
   };
 }
-
-export function shareText({ fields, verdict }) {
-  return COPY.share(fields, verdict);
-}

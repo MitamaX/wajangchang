@@ -127,11 +127,6 @@ export default {
     },
     pieces: (count) => `${count}개`,
     serial: (code) => `제 ${code} 호`,
-    share: ({ name, material, percent, time, pieces }, verdict) => `「${name}」 ${material} ${percent} 파기 · ${time} · 파편 ${pieces} · ${verdict} #${BRAND}`,
-  },
-  share: {
-    'handoff-copied': '저장 · 문구 복사 · X 열림',
-    handoff: '저장 · X 열림',
   },
   intake: {
     notImage: '이미지 파일만 가능',

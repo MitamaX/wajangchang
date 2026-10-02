@@ -10,23 +10,17 @@ export class ShareKit {
     }
   }
 
-  static intentUrl(text) {
-    return `${INTENT_URL}?text=${encodeURIComponent(text)}`;
-  }
-
-  async post(file, text) {
+  async post(file) {
     if (ShareKit.canShareFile(file)) {
       try {
-        await navigator.share({ files: [file], text });
-        return 'shared';
+        await navigator.share({ files: [file] });
+        return;
       } catch (error) {
-        if (error && error.name === 'AbortError') return 'cancelled';
+        if (error && error.name === 'AbortError') return;
       }
     }
-    const copied = this.copy(text);
     this.save(file);
-    window.open(ShareKit.intentUrl(text), '_blank', 'noopener');
-    return (await copied) ? 'handoff-copied' : 'handoff';
+    window.open(INTENT_URL, '_blank', 'noopener');
   }
 
   save(file) {
@@ -38,14 +32,5 @@ export class ShareKit {
     link.click();
     link.remove();
     setTimeout(() => URL.revokeObjectURL(url), REVOKE_DELAY);
-  }
-
-  async copy(text) {
-    try {
-      await navigator.clipboard.writeText(text);
-      return true;
-    } catch {
-      return false;
-    }
   }
 }
