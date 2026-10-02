@@ -2,6 +2,7 @@ const BRAND = '와장창';
 
 export default {
   brand: BRAND,
+  displayFace: '"Gasoek One"',
   glyphs: '와장창파기보고서관리대장소월화수목토요일자알람응답없음재질유리나무돌금속총충격소요시간파편균열파괴율판정개초분년',
   ui: {
     target: '대상',

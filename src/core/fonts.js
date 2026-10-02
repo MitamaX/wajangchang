@@ -1,7 +1,7 @@
 import { TEXT } from '../i18n/text.js';
 
 export const FONT = Object.freeze({
-  display: '"Gasoek One","Black Han Sans","Apple SD Gothic Neo","Malgun Gothic",sans-serif',
+  display: `${TEXT.displayFace},"Black Han Sans","Apple SD Gothic Neo","Malgun Gothic",sans-serif`,
   ui: '"IBM Plex Sans KR","Apple SD Gothic Neo","Malgun Gothic","Noto Sans KR",sans-serif',
   doc: '"Nanum Myeongjo","AppleMyungjo","Batang","Noto Serif KR",serif',
   mono: '"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace',
@@ -10,7 +10,7 @@ export const FONT = Object.freeze({
 
 const DIGITS = '0123456789:.,%-mkMGN ';
 const FACES = [
-  '400 64px "Gasoek One"',
+  `400 64px ${TEXT.displayFace}`,
   '800 40px "Nanum Myeongjo"',
   '700 40px "Nanum Myeongjo"',
   '600 32px "IBM Plex Sans KR"',
