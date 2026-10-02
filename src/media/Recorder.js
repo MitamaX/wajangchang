@@ -1,4 +1,4 @@
-import { AudioBufferSource, BufferTarget, EncodedVideoPacketSource, Mp4OutputFormat, Output, QUALITY_HIGH, VideoSample, VideoSampleSource, canEncodeAudio, canEncodeVideo } from 'mediabunny';
+import { AudioBufferSource, BufferTarget, EncodedVideoPacketSource, Mp4OutputFormat, NullTarget, Output, QUALITY_HIGH, VideoSample, VideoSampleSource, canEncodeAudio, canEncodeVideo } from 'mediabunny';
 import { MIX } from '../audio/mixdown.js';
 import { RECORDING } from '../config.js';
 import { createCanvas } from '../core/canvas.js';
@@ -7,15 +7,12 @@ import { Soundtrack } from './Soundtrack.js';
 
 const PROBE = { width: 1280, height: 720 };
 const FRAME_SECONDS = 1 / RECORDING.fps;
-const PRELUDE_FRAMES = Math.round(RECORDING.preludeSeconds * RECORDING.fps);
+const KEY_FRAME_GAP = Math.round(RECORDING.preludeKeySeconds * RECORDING.fps);
 const FRAMING = new Set(['starting', 'standby']);
 const LISTENING = new Set(['starting', 'standby', 'recording']);
 const CANCELLABLE = new Set(['standby', 'recording', 'closing', 'dubbing']);
 const MP4 = 'video/mp4';
 const OUTRO_SHARE = 0.3;
-
-const mp4Output = () => new Output({ format: new Mp4OutputFormat({ fastStart: 'in-memory' }), target: new BufferTarget() });
-const mp4Blob = (output) => new Blob([output.target.buffer], { type: MP4 });
 
 export function frameSize(aspect) {
   const long = fidelity.profile.longEdge;
@@ -23,18 +20,63 @@ export function frameSize(aspect) {
   return aspect >= 1 ? { width: long, height: even(long / aspect) } : { width: even(long * aspect), height: long };
 }
 
-class Dub {
-  constructor() {
-    this.output = mp4Output();
+class Encoder {
+  constructor({ onPacket, onFail }) {
+    this.output = new Output({ format: new Mp4OutputFormat({ fastStart: 'fragmented' }), target: new NullTarget() });
+    this.source = new VideoSampleSource({ codec: 'avc', quality: QUALITY_HIGH, onEncodedPacket: onPacket });
+    this.output.addVideoTrack(this.source, { frameRate: RECORDING.fps });
+    this.onFail = onFail;
+    this.pending = 0;
+    this.queue = this.output.start().catch(onFail);
+  }
+
+  get busy() {
+    return this.pending >= RECORDING.backlog;
+  }
+
+  add(sample, options) {
+    this.pending++;
+    this.queue = this.queue
+      .then(() => this.source.add(sample, options))
+      .catch(this.onFail)
+      .finally(() => {
+        sample.close();
+        this.pending--;
+      });
+    return this.queue;
+  }
+
+  async flush() {
+    await this.queue;
+    await this.output.finalize();
+  }
+
+  cancel() {
+    this.output.cancel().catch(() => {});
+  }
+}
+
+class Reel {
+  constructor(withAudio) {
+    this.output = new Output({ format: new Mp4OutputFormat({ fastStart: 'in-memory' }), target: new BufferTarget() });
     this.video = new EncodedVideoPacketSource('avc');
-    this.audio = new AudioBufferSource({ codec: 'aac', bitrate: QUALITY_HIGH });
     this.output.addVideoTrack(this.video, { frameRate: RECORDING.fps });
-    this.output.addAudioTrack(this.audio);
+    this.audio = withAudio ? new AudioBufferSource({ codec: 'aac', bitrate: QUALITY_HIGH }) : null;
+    if (this.audio) this.output.addAudioTrack(this.audio);
     this.queue = Promise.resolve();
+  }
+
+  get blob() {
+    return new Blob([this.output.target.buffer], { type: MP4 });
   }
 
   forward(packet, meta) {
     this.queue = this.queue.then(() => this.video.add(packet, meta));
+  }
+
+  async finalize() {
+    await this.queue;
+    await this.output.finalize();
   }
 
   cancel() {
@@ -48,23 +90,26 @@ export class Recorder {
     this.state = 'idle';
     this.canvas = null;
     this.context = null;
-    this.output = null;
-    this.source = null;
-    this.dub = null;
-    this.soundtrack = null;
     this.compose = null;
-    this.prelude = [];
-    this.rehearsed = 0;
+    this.soundtrack = null;
+    this.encoder = null;
+    this.preview = null;
+    this.dub = null;
+    this.held = [];
+    this.keys = [];
+    this.sinceKey = KEY_FRAME_GAP;
+    this.decoderConfig = null;
+    this.configSent = false;
+    this.keyPending = false;
     this.cued = false;
     this.frames = 0;
+    this.origin = 0;
     this.clock = 0;
-    this.backlog = 0;
-    this.queue = Promise.resolve();
     this.generation = 0;
   }
 
   get timeline() {
-    return this.frames * FRAME_SECONDS;
+    return this.frames * FRAME_SECONDS - this.origin;
   }
 
   get recording() {
@@ -72,11 +117,15 @@ export class Recorder {
   }
 
   get saturated() {
-    return this.backlog >= RECORDING.backlog;
+    return Boolean(this.encoder && this.encoder.busy);
   }
 
   get lead() {
     return Math.max(0, this.timeline - this.clock);
+  }
+
+  get reels() {
+    return [this.preview, this.dub].filter(Boolean);
   }
 
   probe() {
@@ -94,12 +143,11 @@ export class Recorder {
     const generation = this.generation;
     this.canvas = null;
     this.compose = compose;
-    this.rehearsed = 0;
     this.cued = false;
+    this.configSent = false;
     this.frames = 0;
+    this.origin = 0;
     this.clock = 0;
-    this.backlog = 0;
-    this.queue = Promise.resolve();
     this.soundtrack = new Soundtrack();
     this.state = 'starting';
     const support = await this.probe();
@@ -108,31 +156,25 @@ export class Recorder {
       this.state = 'unsupported';
       return;
     }
-    const dub = support.audio ? new Dub() : null;
-    const output = mp4Output();
-    const source = new VideoSampleSource({
-      codec: 'avc',
-      quality: QUALITY_HIGH,
-      onEncodedPacket: dub ? (packet, meta) => dub.forward(packet, meta) : undefined,
-    });
-    output.addVideoTrack(source, { frameRate: RECORDING.fps });
+    const preview = new Reel(false);
+    const dub = support.audio ? new Reel(true) : null;
+    const reels = [preview, dub].filter(Boolean);
     try {
-      await Promise.all([output.start(), dub && dub.output.start()]);
+      await Promise.all(reels.map((reel) => reel.output.start()));
     } catch {
       this.state = 'failed';
       return;
     }
     if (generation !== this.generation) {
-      output.cancel().catch(() => {});
-      if (dub) dub.cancel();
+      reels.forEach((reel) => reel.cancel());
       return;
     }
-    this.output = output;
-    this.source = source;
+    this.preview = preview;
     this.dub = dub;
     if (dub) this.soundtrack.attach(dub.audio);
     else this.soundtrack = null;
     this.state = 'standby';
+    this.restartEncoder();
     if (this.cued) this.roll();
   }
 
@@ -142,12 +184,25 @@ export class Recorder {
     if (this.canvas && this.canvas.width === width && this.canvas.height === height) return;
     this.canvas = createCanvas(width, height);
     this.context = this.canvas.getContext('2d', { alpha: false });
-    this.discard();
+    if (this.state === 'standby') this.restartEncoder();
   }
 
-  discard() {
-    this.prelude.forEach((sample) => sample.close());
-    this.prelude = [];
+  restartEncoder() {
+    if (this.encoder) this.encoder.cancel();
+    this.held = [];
+    this.keys = [];
+    this.sinceKey = KEY_FRAME_GAP;
+    this.decoderConfig = null;
+    const { generation } = this;
+    const encoder = new Encoder({
+      onPacket: (packet, meta) => {
+        if (encoder === this.encoder) this.receive(packet, meta);
+      },
+      onFail: () => {
+        if (encoder === this.encoder && generation === this.generation) this.state = 'failed';
+      },
+    });
+    this.encoder = encoder;
   }
 
   cue(name, args) {
@@ -162,23 +217,58 @@ export class Recorder {
     if (this.state !== 'standby') return;
     this.clock += seconds;
     let sample = null;
-    for (; this.rehearsed * FRAME_SECONDS <= this.clock; this.rehearsed++) {
+    for (; this.frames * FRAME_SECONDS <= this.clock; this.frames++) {
+      if (this.encoder.busy) continue;
       sample = sample ? sample.clone() : this.shot();
-      this.prelude.push(sample);
+      this.encode(sample, { keyFrame: this.markKeyFrame() });
     }
-    const excess = this.prelude.length - PRELUDE_FRAMES;
-    if (excess > 0) this.prelude.splice(0, excess).forEach((stale) => stale.close());
+  }
+
+  markKeyFrame() {
+    const due = this.sinceKey >= KEY_FRAME_GAP;
+    this.sinceKey = due ? 1 : this.sinceKey + 1;
+    if (due) this.keys.push(this.frames * FRAME_SECONDS);
+    return due;
+  }
+
+  preludeStart() {
+    const cutoff = this.frames * FRAME_SECONDS - RECORDING.preludeSeconds;
+    const reached = this.keys.filter((time) => time <= cutoff);
+    return reached.length ? reached[reached.length - 1] : (this.keys[0] ?? this.frames * FRAME_SECONDS);
+  }
+
+  receive(packet, meta) {
+    if (meta && meta.decoderConfig) this.decoderConfig = meta.decoderConfig;
+    if (this.state === 'standby') this.hold(packet);
+    else this.forward(packet);
+  }
+
+  hold(packet) {
+    this.held.push(packet);
+    const start = this.preludeStart();
+    this.keys = this.keys.filter((time) => time >= start);
+    this.held = this.held.filter(({ timestamp }) => timestamp >= start);
+  }
+
+  forward(packet) {
+    if (packet.timestamp < this.origin) return;
+    const shifted = packet.clone({ timestamp: packet.timestamp - this.origin });
+    const meta = this.configSent ? undefined : { decoderConfig: this.decoderConfig };
+    this.configSent = true;
+    this.reels.forEach((reel) => reel.forward(shifted, meta));
   }
 
   roll() {
     if (this.state === 'starting') this.cued = true;
     if (this.state !== 'standby') return;
-    const origin = (this.rehearsed - this.prelude.length) * FRAME_SECONDS;
-    this.clock -= origin;
-    if (this.soundtrack) this.soundtrack.shift(-origin);
+    this.origin = this.preludeStart();
+    this.clock -= this.origin;
+    if (this.soundtrack) this.soundtrack.shift(-this.origin);
     this.state = 'recording';
-    this.prelude.forEach((sample) => this.enqueue(sample));
-    this.prelude = [];
+    this.keyPending = this.keys.length === 0;
+    this.held.forEach((packet) => this.forward(packet));
+    this.held = [];
+    this.keys = [];
   }
 
   capture() {
@@ -191,29 +281,20 @@ export class Recorder {
   }
 
   grab() {
-    return new VideoSample(this.canvas, { timestamp: this.timeline, duration: FRAME_SECONDS });
+    return new VideoSample(this.canvas, { timestamp: 0, duration: FRAME_SECONDS });
+  }
+
+  encode(sample, options) {
+    sample.setTimestamp(this.frames * FRAME_SECONDS);
+    return this.encoder.add(sample, options);
   }
 
   push(sample) {
-    const { generation } = this;
-    this.backlog++;
-    return this.enqueue(sample).finally(() => {
-      if (generation === this.generation) this.backlog--;
-    });
-  }
-
-  enqueue(sample) {
-    const { source, generation } = this;
-    sample.setTimestamp(this.timeline);
+    const added = this.encode(sample, this.keyPending ? { keyFrame: true } : undefined);
+    this.keyPending = false;
     this.frames++;
     if (this.soundtrack) this.soundtrack.advance(this.timeline);
-    this.queue = this.queue
-      .then(() => source.add(sample))
-      .catch(() => {
-        if (generation === this.generation) this.state = 'failed';
-      })
-      .finally(() => sample.close());
-    return this.queue;
+    return added;
   }
 
   async finish(paintOutro, outroCues, onProgress) {
@@ -233,13 +314,14 @@ export class Recorder {
         await this.push(this.grab());
         onProgress((OUTRO_SHARE * (i + 1)) / outroFrames);
       }
-      await this.output.finalize();
+      await this.encoder.flush();
+      await this.preview.finalize();
     } catch {
       this.state = 'failed';
       return null;
     }
     if (generation !== this.generation) return null;
-    const preview = mp4Blob(this.output);
+    const preview = this.preview.blob;
     if (!this.dub) {
       this.state = 'done';
       onProgress(1);
@@ -253,22 +335,20 @@ export class Recorder {
     const { dub, soundtrack } = this;
     await dub.queue;
     await soundtrack.finish(this.timeline, (fraction) => onProgress(OUTRO_SHARE + (1 - OUTRO_SHARE) * fraction));
-    await dub.output.finalize();
+    await dub.finalize();
     this.state = 'done';
-    return mp4Blob(dub.output);
+    return dub.blob;
   }
 
   cancel() {
     this.generation++;
-    if (CANCELLABLE.has(this.state)) {
-      if (this.output) this.output.cancel().catch(() => {});
-      if (this.dub) this.dub.cancel();
-    }
-    this.discard();
-    this.output = null;
-    this.source = null;
+    if (CANCELLABLE.has(this.state)) [this.encoder, ...this.reels].forEach((part) => part && part.cancel());
+    this.encoder = null;
+    this.preview = null;
     this.dub = null;
     this.soundtrack = null;
+    this.held = [];
+    this.keys = [];
     this.state = 'idle';
   }
 }
