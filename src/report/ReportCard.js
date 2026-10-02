@@ -20,7 +20,7 @@ const SIGNATURE_LIFT = 14;
 const SEAL_INSET = Object.freeze({ right: 40, bottom: 22 + SIGNATURE_LIFT });
 const SEAL_LANDED = 130;
 const SEAL_TEXT = Object.freeze({ width: 150, gap: 24, center: 4 });
-const SEAL_BRAND_FACE = Object.freeze({ weight: 400, size: 50, family: FONT.display });
+const SEAL_BRAND_FACE = Object.freeze({ weight: 400, size: 50, family: FONT.brand });
 const SEAL_CAPTION_FACE = Object.freeze({ weight: 800, size: 38, family: FONT.doc });
 
 export const REPORT_ASPECT = CARD.frameWidth / CARD.frameHeight;

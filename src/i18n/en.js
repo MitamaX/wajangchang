@@ -2,7 +2,7 @@ const BRAND = 'WAJANGCHANG';
 
 export default {
   brand: BRAND,
-  displayFace: '"Dela Gothic One"',
+  brandFace: '"Dela Gothic One"',
   glyphs: 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz',
   ui: {
     target: 'Target',

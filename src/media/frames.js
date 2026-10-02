@@ -23,7 +23,7 @@ export function composeFrame(context, width, height, stage, field, progress) {
   context.shadowColor = 'rgba(0,0,0,0.55)';
   context.shadowBlur = 10 * unit;
   context.fillStyle = 'rgba(255,255,255,0.92)';
-  context.font = `400 ${34 * unit}px ${FONT.display}`;
+  context.font = `400 ${34 * unit}px ${FONT.brand}`;
   context.textAlign = 'right';
   context.textBaseline = 'alphabetic';
   context.fillText(TEXT.brand, width - margin, height - margin);

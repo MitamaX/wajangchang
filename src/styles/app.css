@@ -17,7 +17,8 @@
   --ok: #9bd48f;
   --focus: #8ccbff;
   --stage: #45484b;
-  --f-display: var(--f-display-face, "Gasoek One"), "Black Han Sans", "Apple SD Gothic Neo", "Malgun Gothic", system-ui, sans-serif;
+  --f-display: "Gasoek One", "Black Han Sans", "Apple SD Gothic Neo", "Malgun Gothic", system-ui, sans-serif;
+  --f-brand: var(--f-brand-face, "Gasoek One"), var(--f-display);
   --f-ui: "IBM Plex Sans KR", "Apple SD Gothic Neo", "Malgun Gothic", "Noto Sans KR", system-ui, sans-serif;
   --f-mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
   --control: 40px;
@@ -110,7 +111,7 @@ button {
 
 .wordmark {
   margin: 0;
-  font-family: var(--f-display);
+  font-family: var(--f-brand);
   font-weight: 400;
   font-size: 30px;
   line-height: 1;

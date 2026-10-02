@@ -13,7 +13,7 @@ const phrase = (path) => path.split('.').reduce((node, key) => node[key], TEXT);
 
 export function localizePage() {
   document.documentElement.lang = LOCALE;
-  document.documentElement.style.setProperty('--f-display-face', TEXT.displayFace);
+  document.documentElement.style.setProperty('--f-brand-face', TEXT.brandFace);
   document.querySelectorAll('[data-text]').forEach((element) => {
     element.textContent = phrase(element.dataset.text);
   });
