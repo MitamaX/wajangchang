@@ -106,7 +106,7 @@ export class Lava extends Tool {
       return;
     }
     const levelAt = (x) => this.levelAt(x);
-    this.onSweep((x, y, vx, vy) => (y < levelAt(x) ? null : [-vx * LAVA.drag * dt, (-GRAVITY * LAVA.buoyancy - vy * LAVA.drag) * dt]));
+    this.onSweep((x, y, vx, vy) => (y < levelAt(x) ? null : [-vx * LAVA.drag * dt, (-GRAVITY * LAVA.buoyancy - vy * LAVA.drag) * dt]), dt);
     if (this.churns.tick(dt)) this.onChurn(LAVA.churnSeconds);
     if (this.melts.tick(dt)) this.melting = this.onMelt(levelAt);
     if (this.melting && this.sizzles.tick(dt)) this.onSizzle(LAVA.sizzleSeconds);

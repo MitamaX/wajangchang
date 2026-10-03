@@ -133,20 +133,17 @@ export class BlackHole extends Tool {
     const follow = Math.min(1, BLACKHOLE.follow * dt);
     this.x += (this.aimX - this.x) * follow;
     this.y += (this.aimY - this.y) * follow;
-    this.onSweep((x, y) => this.thrust(x, y, dt));
+    this.onSweep((x, y) => this.thrust(x, y, dt), dt);
     if (this.hums.tick(dt)) this.onHum(BLACKHOLE.humSeconds, this.size);
     this.gather(dt);
-    if (this.feeds.tick(dt)) this.onFeed({ x: this.x, y: this.y, radius: this.horizon });
+    if (this.feeds.tick(dt)) this.onFeed({ x: this.x, y: this.y, radius: this.horizon, strength: lerp(...BLACKHOLE.crackStrength, this.size) });
   }
 
   thrust(x, y, dt) {
     const dx = this.x - x;
     const dy = this.y - y;
-    const distance = Math.hypot(dx, dy);
-    const { reach } = this;
-    if (distance > reach || distance < 1e-6) return null;
-    const strength = lerp(...BLACKHOLE.pull, this.size) * (1 - distance / reach) * dt / distance;
-    return [(dx + dy * BLACKHOLE.swirl) * strength, (dy - dx * BLACKHOLE.swirl) * strength];
+    const strength = (lerp(...BLACKHOLE.pull, this.size) * dt) / (dx * dx + dy * dy + this.horizon ** 2);
+    return [dx * strength, dy * strength];
   }
 
   gather(dt) {

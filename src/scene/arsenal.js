@@ -113,7 +113,7 @@ export const ARSENAL = Object.freeze([
     label: TEXT.tools.lava,
     arm: (session) => new Lava(session.room, {
       onEngage: () => session.engage(),
-      onSweep: (thrust) => session.sweep(thrust, LAVA.heft),
+      onSweep: (thrust, dt) => session.sweep(thrust, LAVA.heft, { dt }),
       onMelt: (surface) => session.immerse(surface),
       onChurn: (cadence) => session.sound.cue('lava', cadence),
       onSizzle: (cadence) => session.sound.cue('sizzle', cadence),
@@ -125,7 +125,7 @@ export const ARSENAL = Object.freeze([
     label: TEXT.tools.blackhole,
     arm: (session) => new BlackHole(session.room, {
       onFeed: (maw) => session.devour(maw),
-      onSweep: (thrust) => session.sweep(thrust, BLACKHOLE.heft),
+      onSweep: (thrust, dt) => session.sweep(thrust, BLACKHOLE.heft, { dt }),
       onHum: (cadence, size) => session.sound.cue('void', cadence, size),
       onCollapse: (blow) => session.strike(blow),
     }),

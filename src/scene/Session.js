@@ -300,10 +300,10 @@ export class Session {
       const [nx, ny] = normalize(outX, Math.min(outY, BLAST_DIP) - BLAST_LIFT);
       return [nx * kick, ny * kick];
     };
-    this.sweep(thrust, heft, SHOCK_SPIN);
+    this.sweep(thrust, heft, { spin: SHOCK_SPIN });
   }
 
-  sweep(thrust, minimumHeft, spin = 0) {
+  sweep(thrust, minimumHeft, { spin = 0, dt = 0 } = {}) {
     if (this.frozen) return;
     this.fragments.forEach(({ body }) => {
       const center = body.worldCom();
@@ -314,7 +314,7 @@ export class Session {
       nudge(body, push[0] * heft, push[1] * heft);
       if (spin) body.setAngvel(body.angvel() + randomBetween(-spin, spin) * Math.hypot(...push) * heft, true);
     });
-    this.debris.stir(thrust);
+    this.debris.stir(thrust, dt);
   }
 
   impactPoints({ x, y, radius, strength, hits: count, falloff }) {
@@ -632,10 +632,14 @@ export class Session {
     fragment.reshaped = fragment.reshaped || molten.changed;
     this.fallout.melt(contact.x, contact.y, molten.removed.length, heat.ember);
     this.fallout.smolder(contact.x, contact.y, BALL.smoke);
-    const [normalX, normalY] = normalize(contact.x - x, contact.y - y);
-    const cooled = this.clock - fragment.lastImpact >= BALL.crackSeconds;
-    const cracks = cooled ? [this.hitFragment(fragment, { ...contact, normalX, normalY, strength: heat.strength }, 'edge')] : [];
+    const cracks = this.rupture(fragment, contact, { x, y, strength: heat.strength, kind: 'edge', cooldown: BALL.crackSeconds });
     this.apply(fragment, cracks, { x: contact.x, y: contact.y, burst: 0, strength: heat.strength });
+  }
+
+  rupture(fragment, contact, { x, y, strength, kind, cooldown }) {
+    if (this.clock - fragment.lastImpact < cooldown) return [];
+    const [normalX, normalY] = normalize(contact.x - x, contact.y - y);
+    return [this.hitFragment(fragment, { ...contact, normalX, normalY, strength }, kind)];
   }
 
   pepper(round) {
@@ -670,17 +674,18 @@ export class Session {
     this.strike(blow);
   }
 
-  devour({ x, y, radius }) {
+  devour({ x, y, radius, strength }) {
     this.debris.swallow(x, y, radius * SWALLOW_REACH);
     const touched = this.touching(x, y, radius);
     if (!touched.length) return false;
     this.engage();
     this.exert(BLACKHOLE.feedNewtons);
     const reach = radius / CELL_METERS;
-    touched.forEach(({ fragment }) => {
+    touched.forEach(({ fragment, contact }) => {
       if (!fragment.body) return;
+      const cracks = this.rupture(fragment, contact, { x, y, strength, kind: 'blow', cooldown: BLACKHOLE.crackSeconds });
       const [cellX, cellY] = fragment.toCell(x, y);
-      this.apply(fragment, [this.fracture.carve(fragment.grid, { x: cellX, y: cellY, radius: reach })], { x, y, burst: 0, strength: 0 });
+      this.apply(fragment, [...cracks, this.fracture.carve(fragment.grid, { x: cellX, y: cellY, radius: reach })], { x, y, burst: 0, strength: 0 });
     });
     return true;
   }

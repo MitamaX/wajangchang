@@ -40,7 +40,7 @@ export class Debris {
     this.stirred = false;
   }
 
-  stir(thrust) {
+  stir(thrust, dt = 0) {
     this.flying.forEach((particle) => {
       const push = thrust(particle.x, particle.y, particle.vx, particle.vy);
       if (!push) return;
@@ -50,7 +50,7 @@ export class Debris {
     const lifted = [];
     this.resting = this.resting.filter((particle) => {
       const push = thrust(particle.x, particle.y, 0, 0);
-      if (!push) return true;
+      if (!push || -push[1] <= GRAVITY * particle.spec.gravity * dt) return true;
       lifted.push(Object.assign(particle, { vx: push[0], vy: push[1], spin: randomBetween(-SPIN, SPIN) }));
       return false;
     });
