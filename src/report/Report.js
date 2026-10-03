@@ -5,10 +5,12 @@ import { TEXT } from '../i18n/text.js';
 
 const COPY = TEXT.report;
 const TASTER_PERCENT = 30;
+const SITE = 'wajangchang.com';
 const ROWS = [
   ['name', false],
-  ['material', false],
   ['date', false],
+  ['address', true],
+  ['material', false],
   ['force', true],
   ['time', false],
   ['pieces', true],
@@ -33,11 +35,12 @@ export function buildReport({ session, name, early }) {
     pieces: COPY.pieces(numberFormat.format(session.pieceCount)),
     cracks: `${(session.stats.crackCells * CELL_METERS).toFixed(2)} m`,
     percent: `${percent}%`,
+    address: SITE,
   };
   return {
     early,
     fields,
-    rows: ROWS.map(([key, numeric]) => ({ label: COPY.rows[key], value: fields[key], numeric })),
+    rows: ROWS.map(([key, mono]) => ({ label: COPY.rows[key], value: fields[key], mono })),
     thumb: session.specimen.thumb,
     title: early ? COPY.partialTitle : COPY.title,
     serial: COPY.serial(serialCode(now, randomInt(1000, 9999))),

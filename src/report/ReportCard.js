@@ -3,7 +3,7 @@ import { FONT } from '../core/fonts.js';
 import { TAU, clamp, easeOut, randomBetween } from '../core/math.js';
 import { TEXT } from '../i18n/text.js';
 
-const CARD = Object.freeze({ width: 540, height: 760, frameWidth: 640, frameHeight: 820, padding: 34, rowHeight: 50, labelWidth: 118 });
+const CARD = Object.freeze({ width: 540, height: 760, frameWidth: 640, frameHeight: 820, padding: 34, tableHeight: 400, labelWidth: 118, cellText: 17 });
 const INK = '#1f1e1b';
 const MUTE = '#6b6a63';
 const RULE = '#a9ada2';
@@ -68,21 +68,23 @@ export function makeSeal(early) {
 }
 
 function drawTable(context, report, unit, top, cardWidth) {
-  const { padding, rowHeight, labelWidth } = CARD;
+  const { padding, tableHeight, labelWidth, cellText } = CARD;
   const left = padding * unit;
   const right = cardWidth - padding * unit;
-  const row = rowHeight * unit;
+  const row = (tableHeight / report.rows.length) * unit;
+  const bottom = top + tableHeight * unit;
+  const textSize = cellText * unit;
   context.fillStyle = INK;
   context.fillRect(left, top, right - left, 2.4 * unit);
-  context.fillRect(left, top + row * report.rows.length, right - left, 2.4 * unit);
-  report.rows.forEach(({ label, value, numeric }, i) => {
+  context.fillRect(left, bottom, right - left, 2.4 * unit);
+  report.rows.forEach(({ label, value, mono }, i) => {
     const y = top + row * i;
     context.fillStyle = RULE;
     if (i) context.fillRect(left, y, right - left, unit);
     context.fillRect(left + labelWidth * unit, y + 8 * unit, unit, row - 16 * unit);
     context.fillStyle = LABEL_INK;
     context.textAlign = 'left';
-    context.font = `700 ${17 * unit}px ${FONT.doc}`;
+    context.font = `700 ${textSize}px ${FONT.doc}`;
     context.fillText(label, left + 4 * unit, y + row / 2 + 6 * unit, (labelWidth - 8) * unit);
     let valueX = left + labelWidth * unit + 16 * unit;
     if (i === 0 && report.thumb) {
@@ -94,10 +96,10 @@ function drawTable(context, report, unit, top, cardWidth) {
       valueX += size + 12 * unit;
     }
     context.fillStyle = INK;
-    context.font = numeric ? `600 ${19 * unit}px ${FONT.mono}` : `600 ${17 * unit}px ${FONT.ui}`;
+    context.font = `600 ${textSize}px ${mono ? FONT.mono : FONT.ui}`;
     context.fillText(value, valueX, y + row / 2 + 6 * unit, right - valueX);
   });
-  return top + row * report.rows.length;
+  return bottom;
 }
 
 export function drawReportCard(context, width, height, report, time, seal) {

@@ -116,6 +116,7 @@ export default {
       pieces: 'Fragments',
       cracks: 'Cracks',
       percent: 'Destroyed',
+      address: 'Site',
     },
     verdicts: {
       glass: 'Master Shatterer',

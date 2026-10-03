@@ -116,6 +116,7 @@ export default {
       pieces: '파편',
       cracks: '균열',
       percent: '파괴율',
+      address: '주소지',
     },
     verdicts: {
       glass: '산산조각 장인',
