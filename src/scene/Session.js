@@ -232,7 +232,7 @@ export class Session {
     const landed = this.impactArea(blow);
     const grounded = blow.y + blow.radius >= -FLOOR_TOLERANCE;
     if (grounded) this.pound(blow);
-    if (blow.vaporize) this.fronts.push({ x: blow.x, y: blow.y, radius: 0, ...blow.vaporize });
+    if (blow.vaporize) this.fronts.push({ x: blow.x, y: blow.y, radius: 0, newtons: landed ? 0 : blow.newtons, ...blow.vaporize });
     if (!landed && !grounded) this.sound.cue('miss');
     const { hitStop, ...shock } = { ...shockOf(blow.force, landed || grounded), ...blow.shock };
     this.lastStrike = this.clock;
@@ -255,6 +255,8 @@ export class Session {
     const [cellX, cellY] = fragment.toCell(front.x, front.y);
     const removed = fragment.grid.carve(cellX, cellY, front.radius / CELL_METERS, FRONT_ROUGHNESS);
     if (!removed.length) return;
+    this.exert(front.newtons);
+    front.newtons = 0;
     this.fallout.disintegrate(fragment, removed, front);
     fragment.reshaped = true;
     this.split(fragment, { x: front.x, y: front.y, burst: 0, strength: 0 });

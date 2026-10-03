@@ -248,7 +248,7 @@ export const NUKE = Object.freeze({
   blow: Object.freeze({
     normalX: 0,
     normalY: 1,
-    radius: 0.5,
+    radius: 1,
     strength: 12,
     hits: 6,
     falloff: 0.4,
